@@ -2,6 +2,7 @@ import io
 import os
 import glob
 from astropy.io import fits
+from astropy.io.fits.hdu.compressed import CompImageHDU
 from astropy.table import Table
 from watroo import AtrousTransform, B3spline, utils
 import csv
@@ -21,7 +22,6 @@ import cv2
 from rectify import rectify
 from skimage.registration import phase_cross_correlation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from geometry import Point, Line
 import subprocess
 from event import Event
 
@@ -223,8 +223,8 @@ class Image:
         if not ("inpainted" in self.file) and photons:
             if 'DETECTOR' in self.header:
                 if 'HRI_EUV' in self.header['DETECTOR']:
-                    self.dn_per_photoelectron = 5.27
-                    self.header['RDNOISE'] = 1.5 / self.dn_per_photoelectron
+                    self.dn_per_photoelectron = 7.0    #gissot et al
+                    self.header['RDNOISE'] = 2.0 / self.dn_per_photoelectron
                     data *= self.header['XPOSURE']  # image remultiplied by exposure time
                     data /= self.dn_per_photoelectron
             elif 'TELESCOP' in self.header:
@@ -251,7 +251,7 @@ class Image:
             transform = AtrousTransform(scaling_function_class=B3spline)
             coeffs = transform(img - np.median(img[img > 0]), level=n_levels)
             if saturation:
-                gd = np.logical_and(img > 0, img < 620)
+                gd = np.logical_and(img > 0, img < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
             else:
                 gd = img > 0
             sigma_s = self.noise(img)
@@ -296,7 +296,7 @@ class Image:
         if denoise:
             noise = np.copy(data)
             noise = np.ones_like(data)
-            gd = np.logical_and(data > 0, data < 620)
+            gd = np.logical_and(data > 0, data < 3660)
             noise[gd] = 2 * np.sqrt(data[gd] + 3 / 8)
             data = utils.enhance(data,
                                  noise,
@@ -392,11 +392,21 @@ class Sequence:
 
         multiplets = []
         hri_files = glob.glob(os.path.join(self.paths[0], self.suffix))
-        mjds = [Time(fits.getheader(f)['DATE-OBS']).mjd for f in hri_files]
+        
+        with fits.open(hri_files[0]) as hdul:
+            fits_compressed = (any(isinstance(hdu, CompImageHDU) for hdu in hdul))
+            if (fits_compressed):
+                mjds = [Time(fits.getheader(f, 1)['DATE-OBS']).mjd for f in hri_files]  # for compressed fits files
+            else:
+                mjds = [Time(fits.getheader(f)['DATE-OBS']).mjd for f in hri_files]  # for uncompressed fits files
+ 
         hri_files = [f for _, f in sorted(zip(mjds, hri_files))]
 
-        for hri_file in hri_files:
-            hri_header = fits.getheader(hri_file)
+        for hri_file in hri_files:          
+            if (fits_compressed):
+                hri_header = fits.getheader(hri_file, 1)  # for compressed fits files
+            else:
+                hri_header = fits.getheader(hri_file)  # for uncompressed fits files
             hri_distance = hri_header['DSUN_OBS']
             hri_date = Time(hri_header['DATE-OBS'])
             multiplet = [hri_file]
@@ -495,17 +505,22 @@ class Sequence:
     def events_tofits(self, first_n=None):
 
         sort = np.argsort([ev.relative_variance for ev in self.masterstack.events])[::-1]
-        if first_n is not None:
-            if first_n > 65535:
-                first_n = 65535
-            if first_n > sort.shape[0]:
-                first_n = sort.shape[0]
-            sort = sort[0:first_n]
+        # if first_n is not None:
+        #     if first_n > 65535:
+        #         first_n = 65535
+        #     if first_n > sort.shape[0]:
+        #         first_n = sort.shape[0]
+        #     sort = sort[0:first_n]
         for idx, image in enumerate(self.masterstack.images):
             fi_out = image.file[:-5] + '_detected_regions_' + \
                      self.file_suffix() + ".fits.gz"
-            header = fits.getheader(image.file)
-            regions = np.zeros((header['NAXIS2'], header['NAXIS1']), dtype=np.uint16)
+            with fits.open(image.file) as hdul:
+                if (any(isinstance(hdu, CompImageHDU) for hdu in hdul)):
+                    header = fits.getheader(image.file, 1)  # for compressed fits files
+                else:
+                    header = fits.getheader(image.file)  # for uncompressed fits files
+
+            regions = np.zeros((header['NAXIS2'], header['NAXIS1']), dtype=np.uint32)
             fov = (slice(0, header['NAXIS2']),
                    slice(0, header['NAXIS1']))
             for i, s in enumerate(sort):
@@ -526,16 +541,16 @@ class Sequence:
     def events_totable(self, first_n=None, output_filename='EvtCatalog'):
 
         sort = np.argsort([ev.relative_variance for ev in self.masterstack.events])[::-1]
-        if first_n is not None:
-            if first_n > 65535:
-                first_n = 65535
-            if first_n > sort.shape[0]:
-                first_n = sort.shape[0]
-            sort = sort[0:first_n]
+        # if first_n is not None:
+        #     if first_n > 65535:
+        #         first_n = 65535
+        #     if first_n > sort.shape[0]:
+        #         first_n = sort.shape[0]
+        #     sort = sort[0:first_n]
 
         output_names = (
                         'CF', 'xc', 'yc', 'tc', 'projected_area', 'xwidth', 'ywidth', 'height', 'volume', 'duration',
-                        'total_intensity', 'mean_intensity', 'max_intensity', 'xmax', 'ymax', 'tmax', 'variance',
+                        'total_intensity', 'mean_intensity', 'max_intensity', 'xmax', 'ymax', 'tmax','peak_intensity', 'tpeak', 'variance',
                         'xbary', 'ybary', 'tbary', 'barintensity',
                         'relative_variance', 'x_image', 'y_image', 'lon_carrington', 'lat_carrington', 'corrcoeff',
                         'LOSdist', 'x_shift', 'y_shift', 'major_axis', 'minor_axis', 'angle'
@@ -557,6 +572,8 @@ class Sequence:
         a_xmax = []
         a_ymax = []
         a_tmax = []
+        a_peak_intensity = []
+        a_tpeak = []
         a_variance = []
         a_xbary = []
         a_ybary = []
@@ -601,6 +618,8 @@ class Sequence:
             a_xmax.append(ev.xmax)
             a_ymax.append(ev.ymax)
             a_tmax.append(ev.tmax)
+            a_peak_intensity.append(ev.peak_intensity)
+            a_tpeak.append(ev.tpeak)
             a_variance.append(ev.variance)
             a_xbary.append(ev.xbary)
             a_ybary.append(ev.ybary)
@@ -629,7 +648,7 @@ class Sequence:
         output_table = Table(
             [a_index, a_xc, a_yc, a_tc, a_projected_area, a_xwidth, a_ywidth, a_height, a_volume, a_duration,
              a_total_intensity, a_mean_intensity,
-             a_max_intensity, a_xmax, a_ymax, a_tmax, a_variance, a_xbary, a_ybary, a_tbary, a_barintensity,
+             a_max_intensity, a_xmax, a_ymax, a_tmax, a_peak_intensity, a_tpeak, a_variance, a_xbary, a_ybary, a_tbary, a_barintensity,
              a_relative_variance,
              a_x_image_coord, a_y_image_coord, a_lon_carrington, a_lat_carrington, a_corrcoeff, a_los_dist, a_x_shift,
              a_y_shift,
@@ -677,7 +696,7 @@ class Sequence:
         nbins1 = 25
         nbins2 = 25
         bin1 = np.linspace(100, 1400, nbins1)
-        bin2 = np.linspace(100, 620, nbins2)
+        bin2 = np.linspace(100, 3660, nbins2)
         total_hist = np.zeros((nbins1 - 1, nbins2 - 1), dtype=np.float64)
         events_hist = np.zeros((nbins1 - 1, nbins2 - 1), dtype=np.float64)
         for i1, i2 in zip(self.masterstack.images, self.stacks[1].images):
@@ -1179,12 +1198,12 @@ class Sequence:
     def plot_events(self, first_n=None, colorby=None):
         plt.ioff()
         sort = np.argsort([ev.relative_variance for ev in self.masterstack.events])[::-1]
-        if first_n is not None:
-            if first_n > 65535:
-                first_n = 65535
-            if first_n > sort.shape[0]:
-                first_n = sort.shape[0]
-            sort = sort[0:first_n]
+        # if first_n is not None:
+        #     if first_n > 65535:
+        #         first_n = 65535
+        #     if first_n > sort.shape[0]:
+        #         first_n = sort.shape[0]
+        #     sort = sort[0:first_n]
         events = [self.masterstack.events[s] for s in sort]
 
         if colorby is not None:
@@ -1484,22 +1503,21 @@ class Sequence:
                  getattr(ev, "t" + position_type) == t]
 
         return min(d), events[np.argmin(d)]
-        
 
 
-def main(paths):
-    seq = Sequence(paths, fov=None)
+# def main(paths):
+#     seq = Sequence(paths, fov=None)
 
-    seq.extract_events(sigma=8.6, dmin=0, vmin=1)
-    seq.events_totable(output_filename='EvtCatalog_20200530')
-    seq.plot_statistics()
-    seq.plot_events()
-    seq.events_tofits()
-    seq.make_movies(first_n=10)
+#     seq.extract_events(sigma=8.6, dmin=0, vmin=1)
+#     seq.events_totable(output_filename='EvtCatalog_20200530')
+#     seq.plot_statistics()
+#     seq.plot_events()
+#     seq.events_tofits()
+#     seq.make_movies(first_n=10)
 
 
-if __name__ == '__main__':
-    # hri_path = r'C:\archive\Campfires\katsukawa'
-    # hri_path = r'C:\archive\Campfires\20200530\HRI174'
-    hri_path = r'C:\archive\eui\releases\2022\03\18'
-    main([hri_path])
+# if __name__ == '__main__':
+#     # hri_path = r'C:\archive\Campfires\katsukawa'
+#     # hri_path = r'C:\archive\Campfires\20200530\HRI174'
+#     hri_path = r'C:\archive\eui\releases\2022\03\18'
+#     main([hri_path])

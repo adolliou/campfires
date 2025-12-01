@@ -56,7 +56,9 @@ class Event:
         mean_intensity: hum. mean intensity
         max_intensity: hum. maximum intensity
         xmax, ymax, tmax: position of the maximum of intensity (in carrington pixels)
-        variance: variance of the light curve, which is the mean intensity at each time step
+        peak_intensity: peak intensity of the light curve of the event, which is the sum of the pixel intensities in the event mask at each time step
+        tpeak: time corresponding to the peak intensity in the light curve of the event
+        variance: variance of the mean light curve, which is the mean intensity of the event mask at each time step
         xbary, ybary, tbary: position of the intensity weighted average (barycenter)
         barintensity: intensity at the barycenter
         relative_variance: variance normalized to the mean of the light curve
@@ -102,6 +104,9 @@ class Event:
         self.mean_intensity = None
         self.max_intensity = None
         self.light_curve = None
+        self.mean_light_curve = None
+        self.peak_intensity = None
+        self.tpeak = None
         self.self_variance = None
         self.image_coords = np.nan, np.nan
         self.carrington_coords = np.nan, np.nan
@@ -176,9 +181,12 @@ class Event:
         self.tmax += self.slc[0].start
         self.ymax += self.slc[1].start
         self.xmax += self.slc[2].start
-        self.light_curve = self.blob.mean(axis=(1, 2))
+        self.light_curve = self.blob.sum(axis=(1, 2))
+        self.mean_light_curve = self.blob.mean(axis=(1, 2))
+        self.peak_intensity = np.max(self.light_curve)
+        self.tpeak = np.argmax(self.light_curve) + self.slc[0].start
+        self.variance = self.mean_light_curve.var()
         self.ellipse_parameters = self.ellipse_properties()
-        self.variance = self.light_curve.var()
         t, y, x = np.indices(self.blob.shape)
         xbary = int(round(np.sum(self.blob * x) / np.sum(self.blob)))
         ybary = int(round(np.sum(self.blob * y) / np.sum(self.blob)))
@@ -187,7 +195,7 @@ class Event:
         self.xbary = self.slc[2].start + xbary
         self.ybary = self.slc[1].start + ybary
         self.tbary = self.slc[0].start + tbary
-        self.relative_variance = self.variance / self.light_curve.mean()
+        self.relative_variance = self.variance / self.mean_light_curve.mean()
         hd1 = self.parent_stack.images[0].header
         if "MAPPINGR" in hd1:
             transform = rectify.CarringtonTransform(hd1,
