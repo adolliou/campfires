@@ -1484,6 +1484,7 @@ class Sequence:
                  getattr(ev, "t" + position_type) == t]
 
         return min(d), events[np.argmin(d)]
+        
 
 
 def main(paths):
