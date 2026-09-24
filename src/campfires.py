@@ -194,6 +194,14 @@ class Stack:
                 ),
             )
 
+            shmm_blobs_mask, blobs_mask = gen_shmm(
+                create=True,
+                ndarray=np.array(
+                        copy.deepcopy(blobs.mask), 
+                    dtype="bool",
+                ),
+            )
+
             shmm_regions, regions = gen_shmm(
                 create=True,
                 ndarray=np.array(
@@ -218,6 +226,11 @@ class Stack:
                 "dtype": blobs_data.dtype,
                 "shape": blobs_data.shape,
             }
+            self._blobs_mask_dict = {
+                "name": shmm_blobs_mask.name,
+                "dtype": blobs_mask.dtype,
+                "shape": blobs_mask.shape,
+            }            
             self._regions_dict = {
                 "name": shmm_regions.name,
                 "dtype": regions.dtype,
@@ -237,8 +250,12 @@ class Stack:
                 max_cpu         = mp.cpu_count()
             processes           = []
             self.lock           = Lock()
+            self.dmin           = dmin
+            self.vmin           = vmin
+            self.vmax           = vmax
 
-            for i, s in range(nslices):
+
+            for i in range(nslices):
                 kwargs          = {
                     "i": i,
                     "lock": self.lock, 
@@ -265,6 +282,10 @@ class Stack:
             create=False, **self._blobs_data_dict
         )
 
+        shmm_blob_mask, blob_mask = gen_shmm(
+            create=False, **self._blob_mask_dict
+        )
+
         shmm_regions, regions = gen_shmm(
             create=False, **self._regions_dict
         )
@@ -278,14 +299,16 @@ class Stack:
 
         blob                = ma.masked_array(blob_data, mask=region != i + 1)
         event               = Event(self, s, blob, i)
-        lock.acquire()
-        self.ev[i]          = event
-        lock.release()
+        if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blob_mask).sum() <= self.vmax):
+            lock.acquire()
+            self.events.append(event)
+            lock.release()
 
 
         shmm_blobs_data.close()
         shmm_regions.close()
         shmm_slices.close()
+        shmm_blob_mask.close()
     # def return_single_event(self, i, blobs, regions, slices,):
     #     print(i)
     #     s           = slices[i]
