@@ -25,6 +25,10 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import subprocess
 from event import Event
 from tqdm import tqdm
+from multiprocessing import Process, Lock
+import multiprocessing as mp
+
+
 
 def parabolic(cc):
     cy, cx = np.unravel_index(np.argmax(cc, axis=None), cc.shape)
@@ -148,7 +152,7 @@ class Stack:
         return ma.masked_array(blobs)
 
     def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets',
-                       saturation=True):
+                       saturation=True, parallel = False, max_cpu=None):
 
         blobs = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
         if vmax is None:
@@ -158,17 +162,89 @@ class Stack:
         slices = find_objects(regions)
 
         self.events = []
+        if parallel:
+            if max_cpu is None:
+                max_cpu         = mp.cpu_count()
 
-        for i, s in enumerate(tqdm(slices, desc="add events")):
-            blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
-            if s[0].stop - s[0].start < dmin:
-                self.excluded.append(Event(self, s, blob, i))
-                # blobs.mask[s][~blob.mask] = True
-            elif not vmin <= (~blob.mask).sum() <= vmax:
-                self.excluded.append(Event(self, s, blob, i))
-                # blobs.mask[s][~blob.mask] = True
-            else:
-                self.events.append(Event(self, s, blob, i))
+            processes           = []
+            for i in range(len(slices)):
+                s           = slices[i]
+                kwargs      = {
+                    "dmin": dmin, 
+                    "vmin": vmin, 
+                    "vmax": vmax, 
+                    "blobs": blobs, 
+                    "regions": regions, 
+                    "i": i, 
+                    "s": s,  
+                }
+                processes.append(
+                    Process(
+                        target          = self.add_single_event, 
+                        kwargs          = kwargs
+                    )
+                )
+
+            lenp = len(processes)
+            ii = -1
+            is_close = []
+            while ii < lenp - 1:
+                ii += 1
+                processes[ii].start()
+                # Wait here as long as the number of alive jobs is superior to the number of counts.
+
+                while (
+                        np.sum(
+                            [
+                                p.is_alive()
+                                for mm, p in zip(range(lenp), processes)
+                                if (mm not in is_close)
+                            ]
+                        )
+                        > self.cpu_count
+                ):
+                    pass
+                # Close the finished processes before starting a new job to save memory.
+
+                for kk, P in zip(range(lenp), processes):
+                    if kk not in is_close:
+                        if (not (P.is_alive())) and (kk <= ii):
+                            P.close()
+                            is_close.append(kk)
+            # Waiting for the remaining jobs to complete
+            while (
+                    np.sum(
+                        [
+                            p.is_alive()
+                            for mm, p in zip(range(lenp), processes)
+                            if (mm not in is_close)
+                        ]
+                    )
+                    != 0
+            ):
+                pass
+            # Close the final finished jobs
+
+            for kk, P in zip(range(lenp), processes):
+                if kk not in is_close:
+                    if (not (P.is_alive())) and (kk <= ii):
+                        P.close()
+                        is_close.append(kk)
+
+        else:
+            for i, s in enumerate(tqdm(slices, desc="add events")):
+                self.add_single_event(dmin, vmin, vmax, blobs, regions, i, s)
+
+    def add_single_event(self, dmin, vmin, vmax, blobs, regions, i, s):
+        blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
+        if s[0].stop - s[0].start < dmin:
+            self.excluded.append(Event(self, s, blob, i))
+                    # blobs.mask[s][~blob.mask] = True
+        elif not vmin <= (~blob.mask).sum() <= vmax:
+            self.excluded.append(Event(self, s, blob, i))
+                    # blobs.mask[s][~blob.mask] = True
+        else:
+            self.events.append(Event(self, s, blob, i))
 
     def extract_background(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets'):
 
@@ -422,7 +498,8 @@ class Sequence:
 
         self.masterstack = self.stacks[self.master]
 
-    def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None, saturation=True):
+    def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None, saturation=True,
+                       parallel = False, max_cpu = None):
         """
         Apply the wavelet "Atrous" decomposition code and extract events on given scale above 
         a given threshold of the noise.   
@@ -444,7 +521,8 @@ class Sequence:
             instruments = [instruments]
         for instr in instruments:
             self.stacks[instr].extract_events(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
-                                              detection_method=self.detection_method, saturation=saturation)
+                                              detection_method=self.detection_method, saturation=saturation, 
+                                              parallel = parallel, max_cpu = max_cpu,)
 
     def extract_background(self, instruments=None, sigma=1, n_levels=3, dmin=0, vmin=0, vmax=None):
         if instruments is None:
