@@ -254,9 +254,13 @@ class Stack:
             self.vmax           = vmax
 
 
-            for i in range(nslices):
+            i_list_array              = np.array_split(range(nslices), max_cpu)
+
+
+
+            for i_list in i_list_array:
                 kwargs          = {
-                    "i": i,
+                    "i_list": i_list,
                     "lock": self.lock, 
                 }
                 processes.append(
@@ -284,40 +288,40 @@ class Stack:
             for i, s in enumerate(tqdm(slices, desc="add events")):
                 self.add_single_event(dmin, vmin, vmax, blobs, regions, i, s)
 
-    def return_single_event(self, i, lock):
-        print(i)
+    def return_single_event_list(self, i_list, lock):
+        for i in tqdm(i_list):
+            shmm_blobs_data, blobs_data = gen_shmm(
+                create=False, **self._blobs_data_dict
+            )
 
-        shmm_blobs_data, blobs_data = gen_shmm(
-            create=False, **self._blobs_data_dict
-        )
+            shmm_blobs_mask, blobs_mask = gen_shmm(
+                create=False, **self._blobs_mask_dict
+            )
 
-        shmm_blobs_mask, blobs_mask = gen_shmm(
-            create=False, **self._blobs_mask_dict
-        )
+            shmm_regions, regions = gen_shmm(
+                create=False, **self._regions_dict
+            )
 
-        shmm_regions, regions = gen_shmm(
-            create=False, **self._regions_dict
-        )
+            shmm_slices, slices = gen_shmm(
+                create=False, **self._slices_dict
+            )
+            s                   = slices[i]
+            print(f"{s=}")
+            blob_data           = blobs_data[s]
+            region              = regions[s]        
 
-        shmm_slices, slices = gen_shmm(
-            create=False, **self._slices_dict
-        )
-        s                   = slices[i]
-        blob_data           = blobs_data[s]
-        region              = regions[s]        
-
-        blob                = ma.masked_array(blob_data, mask=region != i + 1)
-        event               = Event(self, s, blob, i)
-        if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blobs_mask).sum() <= self.vmax):
-            lock.acquire()
-            self.events.append(event)
-            lock.release()
+            blob                = ma.masked_array(blob_data, mask=region != i + 1)
+            event               = Event(self, s, blob, i)
+            if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blobs_mask).sum() <= self.vmax):
+                lock.acquire()
+                self.events.append(event)
+                lock.release()
 
 
-        shmm_blobs_data.close()
-        shmm_regions.close()
-        shmm_slices.close()
-        shmm_blobs_mask.close()
+            shmm_blobs_data.close()
+            shmm_regions.close()
+            shmm_slices.close()
+            shmm_blobs_mask.close()
     # def return_single_event(self, i, blobs, regions, slices,):
     #     print(i)
     #     s           = slices[i]
