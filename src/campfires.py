@@ -194,9 +194,9 @@ class Stack:
         print(i)
         blob                = ma.masked_array(blob_data, mask=region != i + 1)
         event               = Event(self, s, blob, i)
-        lock.acquire()
+        # lock.acquire()
         self.ev[i]          = event
-        lock.release()
+        # lock.release()
 
     # def return_single_event(self, i, blobs, regions, slices,):
     #     print(i)
