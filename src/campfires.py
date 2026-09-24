@@ -245,7 +245,6 @@ class Stack:
 
 
             nslices             = len(slices)
-            self.ev             = np.empty((len(slices)), dtype=object)
             if max_cpu is None:
                 max_cpu         = mp.cpu_count()
             processes           = []
