@@ -25,9 +25,9 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import subprocess
 from event import Event
 from tqdm import tqdm
-from multiprocessing import Process, Lock
+from multiprocessing import Pool
 import multiprocessing as mp
-
+from functools import partial
 
 
 def parabolic(cc):
@@ -166,74 +166,40 @@ class Stack:
             if max_cpu is None:
                 max_cpu         = mp.cpu_count()
 
-            processes           = []
-            for i in range(len(slices)):
-                s           = slices[i]
-                kwargs      = {
-                    "dmin": dmin, 
-                    "vmin": vmin, 
-                    "vmax": vmax, 
-                    "blobs": blobs, 
-                    "regions": regions, 
-                    "i": i, 
-                    "s": s,  
-                }
-                processes.append(
-                    Process(
-                        target          = self.add_single_event, 
-                        kwargs          = kwargs
-                    )
-                )
+            pool        = Pool(max_cpu)
+            events      = tqdm(pool.map(
+                partial(
+                    self.return_single_event, 
+                    dmin            = dmin, 
+                    vmin            = vmin, 
+                    vmax            = vmax, 
+                    blobs           = blobs, 
+                    regions         = regions, 
+                    slices          = slices, 
+                ), 
+                range(len(slices)), total=len(slices))
+            )
+            breakpoint()
 
-            lenp = len(processes)
-            ii = -1
-            is_close = []
-            while ii < lenp - 1:
-                ii += 1
-                processes[ii].start()
-                # Wait here as long as the number of alive jobs is superior to the number of counts.
 
-                while (
-                        np.sum(
-                            [
-                                p.is_alive()
-                                for mm, p in zip(range(lenp), processes)
-                                if (mm not in is_close)
-                            ]
-                        )
-                        > self.cpu_count
-                ):
-                    pass
-                # Close the finished processes before starting a new job to save memory.
-
-                for kk, P in zip(range(lenp), processes):
-                    if kk not in is_close:
-                        if (not (P.is_alive())) and (kk <= ii):
-                            P.close()
-                            is_close.append(kk)
-            # Waiting for the remaining jobs to complete
-            while (
-                    np.sum(
-                        [
-                            p.is_alive()
-                            for mm, p in zip(range(lenp), processes)
-                            if (mm not in is_close)
-                        ]
-                    )
-                    != 0
-            ):
-                pass
-            # Close the final finished jobs
-
-            for kk, P in zip(range(lenp), processes):
-                if kk not in is_close:
-                    if (not (P.is_alive())) and (kk <= ii):
-                        P.close()
-                        is_close.append(kk)
 
         else:
             for i, s in enumerate(tqdm(slices, desc="add events")):
                 self.add_single_event(dmin, vmin, vmax, blobs, regions, i, s)
+
+    def return_single_event(self, i, dmin, vmin, vmax, blobs, regions, slices,):
+        s           = slices[i]
+        blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
+        event       = Event(self, s, blob, i)
+        return event
+        # if s[0].stop - s[0].start < dmin:
+        #     self.excluded.append(Event(self, s, blob, i))
+        #             # blobs.mask[s][~blob.mask] = True
+        # elif not vmin <= (~blob.mask).sum() <= vmax:
+        #     self.excluded.append(Event(self, s, blob, i))
+        #             # blobs.mask[s][~blob.mask] = True
+        # else:
+        #     self.events.append(Event(self, s, blob, i))
 
     def add_single_event(self, dmin, vmin, vmax, blobs, regions, i, s):
         blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
@@ -246,6 +212,7 @@ class Stack:
         else:
             self.events.append(Event(self, s, blob, i))
 
+
     def extract_background(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets'):
 
         blobs = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method)
@@ -257,6 +224,53 @@ class Stack:
 
         plt.imshow(~blobs[10].mask, origin="lower")
 
+
+    def _launch_processes(self, processes):
+        lenp = len(processes)
+        ii = -1
+        is_close = []
+        while ii < lenp - 1:
+            ii += 1
+            processes[ii].start()
+                # Wait here as long as the number of alive jobs is superior to the number of counts.
+
+            while (
+                        np.sum(
+                            [
+                                p.is_alive()
+                                for mm, p in zip(range(lenp), processes)
+                                if (mm not in is_close)
+                            ]
+                        )
+                        > self.cpu_count
+                ):
+                pass
+                # Close the finished processes before starting a new job to save memory.
+
+            for kk, P in zip(range(lenp), processes):
+                if kk not in is_close:
+                    if (not (P.is_alive())) and (kk <= ii):
+                        P.close()
+                        is_close.append(kk)
+            # Waiting for the remaining jobs to complete
+        while (
+                    np.sum(
+                        [
+                            p.is_alive()
+                            for mm, p in zip(range(lenp), processes)
+                            if (mm not in is_close)
+                        ]
+                    )
+                    != 0
+            ):
+            pass
+            # Close the final finished jobs
+
+        for kk, P in zip(range(lenp), processes):
+            if kk not in is_close:
+                if (not (P.is_alive())) and (kk <= ii):
+                    P.close()
+                    is_close.append(kk)
 
 class Image:
 
