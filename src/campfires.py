@@ -210,7 +210,7 @@ class Stack:
                 ),
             )            
             del blobs
-            del regions
+            del regions_
             del slices_
 
             self._blobs_data_dict = {
