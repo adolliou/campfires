@@ -173,7 +173,7 @@ class Stack:
                     "blob_data": blobs.data[s], 
                     "region": regions[s], 
                     "s": s, 
-                    "i": s,
+                    "i": i,
                     "lock": self.lock, 
                 }
                 processes.append(
