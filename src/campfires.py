@@ -302,7 +302,7 @@ class Stack:
         shmm_slices, slices = gen_shmm(
             create=False, **self._slices_dict
         )
-        s                   = slices[s]
+        s                   = slices[i]
         blob_data           = blobs_data[s]
         region              = regions[s]        
 
