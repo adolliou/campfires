@@ -26,6 +26,7 @@ import subprocess
 from event import Event
 from tqdm import tqdm
 from multiprocessing import Pool
+from multiprocessing import Process, Lock
 import multiprocessing as mp
 from functools import partial
 
@@ -146,7 +147,7 @@ class Stack:
 
     def blobs3d(self, n_levels=2, sigma=1, detection_method='wavelets', saturation=True):
         blobs = []
-        for image in tqdm(self):
+        for image in tqdm(self, desc="compute blob3d"):
             blobs.append(
                 image.blobs2d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation))
         return ma.masked_array(blobs)
@@ -160,39 +161,49 @@ class Stack:
 
         regions, nregions = label(~blobs.mask)
         slices = find_objects(regions)
-
-        self.events = []
         if parallel:
+            self.ev         = np.empty((len(slices)), dtype=object)
             if max_cpu is None:
                 max_cpu         = mp.cpu_count()
+            processes           = []
+            self.lock           = Lock()
 
-            pool        = Pool(max_cpu)
-            events      = list(
-                        tqdm(pool.imap_unordered(
-                            partial(
-                                self.return_single_event,  
-                                blobs           = blobs, 
-                                regions         = regions, 
-                                slices          = slices, 
-                            ), 
-                    range(len(slices)), 
-                ), 
-                total=len(slices),)
-            )
+            for i, s in enumerate(slices):
+                kwargs          = {
+                    "blob_data": blobs.data[s], 
+                    "region": regions[s], 
+                    "s": s, 
+                    "i": s,
+                    "lock": self.lock, 
+                }
+                processes.append(
+                    Process(
+                        target      = self.return_single_event, 
+                        kwargs      = kwargs, 
+                    )
+                )
+
+            self._launch_processes(processes, max_cpu)
             breakpoint()
-
-
 
         else:
             for i, s in enumerate(tqdm(slices, desc="add events")):
                 self.add_single_event(dmin, vmin, vmax, blobs, regions, i, s)
 
-    def return_single_event(self, i, blobs, regions, slices,):
+    def return_single_event(self, blob_data, region, s, i, lock):
         print(i)
-        s           = slices[i]
-        blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
-        event       = Event(self, s, blob, i)
-        return event
+        blob                = ma.masked_array(blob_data, mask=region != i + 1)
+        event               = Event(self, s, blob, i)
+        lock.acquire()
+        self.ev[i]          = event
+        lock.release()
+
+    # def return_single_event(self, i, blobs, regions, slices,):
+    #     print(i)
+    #     s           = slices[i]
+    #     blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
+    #     event       = Event(self, s, blob, i)
+    #     return event
         # if s[0].stop - s[0].start < dmin:
         #     self.excluded.append(Event(self, s, blob, i))
         #             # blobs.mask[s][~blob.mask] = True
@@ -226,7 +237,7 @@ class Stack:
         plt.imshow(~blobs[10].mask, origin="lower")
 
 
-    def _launch_processes(self, processes):
+    def _launch_processes(self, processes, max_cpu):
         lenp = len(processes)
         ii = -1
         is_close = []
@@ -243,7 +254,7 @@ class Stack:
                                 if (mm not in is_close)
                             ]
                         )
-                        > self.cpu_count
+                        > max_cpu
                 ):
                 pass
                 # Close the finished processes before starting a new job to save memory.
