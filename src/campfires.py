@@ -152,7 +152,7 @@ class Stack:
         return ma.masked_array(blobs)
 
     def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets',
-                       saturation=True, parallel = False, max_cpu=None):
+                       saturation=True, parallel = False, max_cpu=15):
 
         blobs = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
         if vmax is None:
@@ -167,17 +167,17 @@ class Stack:
                 max_cpu         = mp.cpu_count()
 
             pool        = Pool(max_cpu)
-            events      = tqdm(
-                pool.map(
-                    partial(
-                        self.return_single_event,  
-                        blobs           = blobs, 
-                        regions         = regions, 
-                        slices          = slices, 
-                    ), 
+            events      = list(
+                        tqdm(pool.imap_unordered(
+                            partial(
+                                self.return_single_event,  
+                                blobs           = blobs, 
+                                regions         = regions, 
+                                slices          = slices, 
+                            ), 
                     range(len(slices)), 
                 ), 
-                total=len(slices),
+                total=len(slices),)
             )
             breakpoint()
 
@@ -188,6 +188,7 @@ class Stack:
                 self.add_single_event(dmin, vmin, vmax, blobs, regions, i, s)
 
     def return_single_event(self, i, blobs, regions, slices,):
+        print(i)
         s           = slices[i]
         blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
         event       = Event(self, s, blob, i)
