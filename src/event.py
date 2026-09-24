@@ -200,8 +200,8 @@ class Event:
         if "MAPPINGR" in hd1:
             transform = rectify.CarringtonTransform(hd1,
                                                     radius_correction=hd1["MAPPINGR"] / astropy.constants.R_sun.value)
-            lon1 = (self.xmax - hd1["CACRPIX1"] + 1) * hd1["CACDELT1"] + hd1["CACRVAL1"]
-            lat1 = (self.ymax - hd1["CACRPIX2"] + 1) * hd1["CACDELT2"] + hd1["CACRVAL2"]
+            lon1 = (self.xmax - hd1["CRPIX1"] + 1) * hd1["CDELT1"] + hd1["CRVAL1"]
+            lat1 = (self.ymax - hd1["CRPIX2"] + 1) * hd1["CDELT2"] + hd1["CRVAL2"]
             image_coords = transform(x=lon1, y=lat1)
             self.image_coords = float(image_coords[0]), float(image_coords[1])
             self.carrington_coords = lon1, lat1

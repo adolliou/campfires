@@ -423,6 +423,19 @@ class Sequence:
         self.masterstack = self.stacks[self.master]
 
     def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None, saturation=True):
+        """
+        Apply the wavelet "Atrous" decomposition code and extract events on given scale above 
+        a certain threshold of the standard deviation  
+
+        Args:
+            instruments (_type_, optional): _description_. Defaults to None.
+            sigma (int, optional): _description_. Defaults to 5.
+            n_levels (int, optional): _description_. Defaults to 2.
+            dmin (int, optional): _description_. Defaults to 0.
+            vmin (int, optional): _description_. Defaults to 0.
+            vmax (_type_, optional): _description_. Defaults to None.
+            saturation (bool, optional): _description_. Defaults to True.
+        """        
         self.sigma = sigma
         self.n_levels = n_levels
         self.dmin = dmin
@@ -538,7 +551,7 @@ class Sequence:
         #            names=('T','X','Y'))
         # table_center.write('center_of_intensity_v3.fits',format='fits')
 
-    def events_totable(self, first_n=None, output_filename='EvtCatalog'):
+    def events_totable(self,output_path,  first_n=None, output_filename='EvtCatalog'):
 
         sort = np.argsort([ev.relative_variance for ev in self.masterstack.events])[::-1]
         # if first_n is not None:
@@ -661,7 +674,7 @@ class Sequence:
         foreveryt_table = Table([a_height_fort, a_min_segment_fort, a_shift_fort],
                                 names=['height_fort', 'min_segment_fort', 'shift_fort'])
 
-        foreveryt_table.write(output_filename + '_correl_everyt.fits', format='fits', overwrite=True)
+        foreveryt_table.write(os.path.join(output_path, output_filename + '_correl_everyt.fits'), format='fits', overwrite=True)
 
     def plot_histograms(self):
         nbins = 50
@@ -1056,7 +1069,7 @@ class Sequence:
         filename = 'events_heights_' + self.file_suffix() + '.eps'
         fig.savefig(filename)
 
-    def plot_statistics(self, instrument=None, full_events=False):
+    def plot_statistics(self, output_path, instrument=None, full_events=False):
         if instrument is None:
             instrument = self.master
         if len(self.stacks) == 0:
@@ -1193,9 +1206,9 @@ class Sequence:
         filename = 'events_statistics_' + self.file_suffix() + '.png'
         fig.tight_layout()
 
-        fig.savefig(filename, dpi=200)
+        fig.savefig(os.path.join(output_path, filename), dpi=200)
 
-    def plot_events(self, first_n=None, colorby=None):
+    def plot_events(self, output_path, first_n=None, colorby=None):
         plt.ioff()
         sort = np.argsort([ev.relative_variance for ev in self.masterstack.events])[::-1]
         # if first_n is not None:
@@ -1267,7 +1280,7 @@ class Sequence:
             bounds = ax.get_window_extent().bounds
             inches = (bounds[2] - bounds[0]) / fig.dpi
             dpi = f.parent_stack.get_min().shape[1] / inches
-            fig.savefig("locations_bar_" + self.file_suffix() + f"_{i}.png", dpi=dpi)
+            fig.savefig(os.path.join(output_path, "locations_bar_" + self.file_suffix() + f"_{i}.png"), dpi=dpi)
 
             # xc = [ev.xc for ev in self.masterstack.events]
             # yc = [ev.yc for ev in self.masterstack.events]
