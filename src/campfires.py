@@ -265,7 +265,7 @@ class Stack:
                 }
                 processes.append(
                     Process(
-                        target      = self.return_single_event, 
+                        target      = self.return_single_event_list, 
                         kwargs      = kwargs, 
                     )
                 )
