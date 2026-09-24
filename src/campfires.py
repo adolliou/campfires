@@ -146,7 +146,7 @@ class Stack:
 
     def blobs3d(self, n_levels=2, sigma=1, detection_method='wavelets', saturation=True):
         blobs = []
-        for image in self:
+        for image in tqdm(self):
             blobs.append(
                 image.blobs2d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation))
         return ma.masked_array(blobs)
