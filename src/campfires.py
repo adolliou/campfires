@@ -269,7 +269,6 @@ class Stack:
                         kwargs      = kwargs, 
                     )
                 )
-            breakpoint()
 
             self._launch_processes(processes, max_cpu)
             breakpoint()
@@ -307,8 +306,7 @@ class Stack:
             shmm_slices, slices = gen_shmm(
                 create=False, **self._slices_dict
             )
-            s                   = slices[i]
-            print(f"{s=}")
+            s                   = slices[i][0]
             blob_data           = blobs_data[s]
             region              = regions[s]        
 
