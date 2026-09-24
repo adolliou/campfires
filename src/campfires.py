@@ -29,6 +29,29 @@ from multiprocessing import Pool
 from multiprocessing import Process, Lock
 import multiprocessing as mp
 from functools import partial
+from multiprocessing.shared_memory import SharedMemory
+
+
+
+
+def gen_shmm(create=False, name=None, ndarray=None, size=0, shape=None, dtype=None):
+    assert (type(ndarray) != type(None) or size != 0) or type(name) != type(None)
+    assert type(ndarray) != type(None) or type(shape) != type(None)
+    if dtype is None:
+        dtype = ndarray.dtype
+    else:
+        dtype = dtype
+    size = size if type(ndarray) == type(None) else ndarray.nbytes
+    shmm = SharedMemory(create=create, size=size, name=name)
+    shmm_data = np.ndarray(shape=shape if type(ndarray) == type(None) else ndarray.shape,
+                           buffer=shmm.buf, dtype=dtype)
+
+    if create and type(ndarray) != type(None):
+        shmm_data[:] = ndarray[:]
+    elif create:
+        shmm_data[:] = np.nan
+
+    return shmm, shmm_data
 
 
 def parabolic(cc):
@@ -155,24 +178,68 @@ class Stack:
     def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets',
                        saturation=True, parallel = False, max_cpu=15):
 
-        blobs = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
+        blobs                   = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
         if vmax is None:
             vmax = blobs.size
 
-        regions, nregions = label(~blobs.mask)
-        slices = find_objects(regions)
+        regions_, nregions      = label(~blobs.mask)
+        slices_                 = find_objects(regions)
         if parallel:
-            self.ev         = np.empty((len(slices)), dtype=object)
+
+            shmm_blobs_data, blobs_data = gen_shmm(
+                create=True,
+                ndarray=np.array(
+                        copy.deepcopy(blobs.data), 
+                    dtype="float32",
+                ),
+            )
+
+            shmm_regions, regions = gen_shmm(
+                create=True,
+                ndarray=np.array(
+                        copy.deepcopy(regions_), 
+                    dtype="float32",
+                ),
+            )
+
+            shmm_slices, slices = gen_shmm(
+                create=True,
+                ndarray=np.array(
+                        copy.deepcopy(slices_), 
+                    dtype="O",
+                ),
+            )            
+            del blobs
+            del regions
+            del slices_
+
+            self._blobs_data_dict = {
+                "name": shmm_blobs_data.name,
+                "dtype": blobs_data.dtype,
+                "shape": blobs_data.shape,
+            }
+            self._regions_dict = {
+                "name": shmm_regions.name,
+                "dtype": regions.dtype,
+                "shape": regions.shape,
+            }
+            
+            self._slices_dict = {
+                "name": shmm_slices.name,
+                "dtype": slices.dtype,
+                "shape": slices.shape,
+            }
+
+
+            nslices             = len(slices)
+            self.ev             = np.empty((len(slices)), dtype=object)
             if max_cpu is None:
                 max_cpu         = mp.cpu_count()
             processes           = []
             self.lock           = Lock()
 
-            for i, s in enumerate(slices):
+            for i, s in range(nslices):
                 kwargs          = {
-                    "blob_data": blobs.data[s], 
-                    "region": regions[s], 
-                    "s": s, 
                     "i": i,
                     "lock": self.lock, 
                 }
@@ -191,14 +258,34 @@ class Stack:
             for i, s in enumerate(tqdm(slices, desc="add events")):
                 self.add_single_event(dmin, vmin, vmax, blobs, regions, i, s)
 
-    def return_single_event(self, blob_data, region, s, i, lock):
+    def return_single_event(self, i, lock):
         print(i)
+
+        shmm_blobs_data, blobs_data = gen_shmm(
+            create=False, **self._blobs_data_dict
+        )
+
+        shmm_regions, regions = gen_shmm(
+            create=False, **self._regions_dict
+        )
+
+        shmm_slices, slices = gen_shmm(
+            create=False, **self._slices_dict
+        )
+        s                   = slices[s]
+        blob_data           = blobs_data[s]
+        region              = regions[s]        
+
         blob                = ma.masked_array(blob_data, mask=region != i + 1)
         event               = Event(self, s, blob, i)
-        # lock.acquire()
+        lock.acquire()
         self.ev[i]          = event
-        # lock.release()
+        lock.release()
 
+
+        shmm_blobs_data.close()
+        shmm_regions.close()
+        shmm_slices.close()
     # def return_single_event(self, i, blobs, regions, slices,):
     #     print(i)
     #     s           = slices[i]
