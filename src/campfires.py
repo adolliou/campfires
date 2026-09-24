@@ -167,17 +167,17 @@ class Stack:
                 max_cpu         = mp.cpu_count()
 
             pool        = Pool(max_cpu)
-            events      = tqdm(pool.map(
-                partial(
-                    self.return_single_event, 
-                    dmin            = dmin, 
-                    vmin            = vmin, 
-                    vmax            = vmax, 
-                    blobs           = blobs, 
-                    regions         = regions, 
-                    slices          = slices, 
+            events      = tqdm(
+                pool.map(
+                    partial(
+                        self.return_single_event,  
+                        blobs           = blobs, 
+                        regions         = regions, 
+                        slices          = slices, 
+                    ), 
+                    range(len(slices)), 
                 ), 
-                range(len(slices)), total=len(slices))
+                total=len(slices),
             )
             breakpoint()
 
@@ -187,7 +187,7 @@ class Stack:
             for i, s in enumerate(tqdm(slices, desc="add events")):
                 self.add_single_event(dmin, vmin, vmax, blobs, regions, i, s)
 
-    def return_single_event(self, i, dmin, vmin, vmax, blobs, regions, slices,):
+    def return_single_event(self, i, blobs, regions, slices,):
         s           = slices[i]
         blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
         event       = Event(self, s, blob, i)
