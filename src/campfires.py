@@ -183,7 +183,7 @@ class Stack:
             vmax = blobs.size
 
         regions_, nregions      = label(~blobs.mask)
-        slices_                 = find_objects(regions)
+        slices_                 = find_objects(regions_)
         if parallel:
 
             shmm_blobs_data, blobs_data = gen_shmm(
