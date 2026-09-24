@@ -24,7 +24,7 @@ from skimage.registration import phase_cross_correlation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import subprocess
 from event import Event
-
+from tqdm import tqdm
 
 def parabolic(cc):
     cy, cx = np.unravel_index(np.argmax(cc, axis=None), cc.shape)
@@ -159,7 +159,7 @@ class Stack:
 
         self.events = []
 
-        for i, s in enumerate(slices):
+        for i, s in enumerate(tqdm(slices, desc="add events")):
             blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
             if s[0].stop - s[0].start < dmin:
                 self.excluded.append(Event(self, s, blob, i))
@@ -425,7 +425,7 @@ class Sequence:
     def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None, saturation=True):
         """
         Apply the wavelet "Atrous" decomposition code and extract events on given scale above 
-        a certain threshold of the standard deviation  
+        a given threshold of the noise.   
 
         Args:
             instruments (_type_, optional): _description_. Defaults to None.

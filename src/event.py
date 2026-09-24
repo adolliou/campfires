@@ -217,10 +217,10 @@ class Event:
         s = area.argmax()
         props = regionprops(np.uint8(mask[s]), intensity_image=self.blob.data[s])
         self.feret_diameter = props[0].feret_diameter_max
-        major = props[0].major_axis_length
+        major = props[0].axis_major_length
         if major == 0:
             major = 1
-        minor = props[0].minor_axis_length
+        minor = props[0].axis_minor_length
         if minor == 0:
             minor = 1
         angle = props[0].orientation
