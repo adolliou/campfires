@@ -269,6 +269,8 @@ class Stack:
                         kwargs      = kwargs, 
                     )
                 )
+            breakpoint()
+
             self._launch_processes(processes, max_cpu)
             breakpoint()
 
