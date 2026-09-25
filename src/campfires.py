@@ -398,7 +398,7 @@ class Stack:
             if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blob_event.mask).sum() <= self.vmax):
 
                 lock.acquire()
-                event_array[i]          = Event(self, s, blob_event, i, rel_variance, header)
+                event_array[i]          = Event(s, blob_event, i, rel_variance, header)
                 changed_array[i]        = True
                 lock.release()
 
@@ -412,13 +412,13 @@ class Stack:
     def add_single_event(self, dmin, vmin, vmax, blobs, regions, i, s, relative_intensity, header):
         blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
         if s[0].stop - s[0].start < dmin:
-            self.excluded.append(Event(self, s, blob, i))
+            self.excluded.append(Event(s, blob, i, relative_intensity, header))
                     # blobs.mask[s][~blob.mask] = True
         elif not vmin <= (~blob.mask).sum() <= vmax:
-            self.excluded.append(Event(self, s, blob, i))
+            self.excluded.append(Event(s, blob, i, relative_intensity, header))
                     # blobs.mask[s][~blob.mask] = True
         else:
-            ev = Event(self, s, blob, i)
+            ev = Event(s, blob, i, relative_intensity, header)
             breakpoint()
             self.events.append(ev)
 
