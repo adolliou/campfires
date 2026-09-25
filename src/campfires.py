@@ -194,13 +194,13 @@ class Stack:
                 ),
             )
 
-            shmm_blobs_mask, blobs_mask = gen_shmm(
-                create=True,
-                ndarray=np.array(
-                        copy.deepcopy(blobs.mask), 
-                    dtype="bool",
-                ),
-            )
+            # shmm_blobs_mask, blobs_mask = gen_shmm(
+            #     create=True,
+            #     ndarray=np.array(
+            #             copy.deepcopy(blobs.mask), 
+            #         dtype="bool",
+            #     ),
+            # )
 
             shmm_regions, regions = gen_shmm(
                 create=True,
@@ -237,11 +237,11 @@ class Stack:
                 "dtype": blobs_data.dtype,
                 "shape": blobs_data.shape,
             }
-            self._blobs_mask_dict = {
-                "name": shmm_blobs_mask.name,
-                "dtype": blobs_mask.dtype,
-                "shape": blobs_mask.shape,
-            }            
+            # self._blobs_mask_dict = {
+            #     "name": shmm_blobs_mask.name,
+            #     "dtype": blobs_mask.dtype,
+            #     "shape": blobs_mask.shape,
+            # }            
             self._regions_dict = {
                 "name": shmm_regions.name,
                 "dtype": regions.dtype,
@@ -285,8 +285,8 @@ class Stack:
             shmm_blobs_data.close()
             shmm_blobs_data.unlink()
 
-            shmm_blobs_mask.close()
-            shmm_blobs_mask.unlink()
+            # shmm_blobs_mask.close()
+            # shmm_blobs_mask.unlink()
 
             shmm_regions.close()
             shmm_regions.unlink()
@@ -303,9 +303,9 @@ class Stack:
             create=False, **self._blobs_data_dict
         )
 
-        shmm_blobs_mask, blobs_mask = gen_shmm(
-            create=False, **self._blobs_mask_dict
-        )
+        # shmm_blobs_mask, blobs_mask = gen_shmm(
+        #     create=False, **self._blobs_mask_dict
+        # )
 
         shmm_regions, regions = gen_shmm(
             create=False, **self._regions_dict
@@ -318,15 +318,15 @@ class Stack:
         for i in tqdm(i_list):
 
 
-            s                   = tuple(slices[i])
-            blob_data           = blobs_data[s]
-            region              = regions[s]        
+            s                           = tuple(slices[i])
+            blob_data_event             = blobs_data[s]
+            region_event                = regions[s]        
 
-            blob                = ma.masked_array(blob_data, mask=region != i + 1)
-            if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blobs_mask).sum() <= self.vmax):
+            blob_event                  = ma.masked_array(blob_data_event, mask=region_event != i + 1)
+            if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blob_event.mask).sum() <= self.vmax):
                 # lock.acquire()
                 # self.events.append(Event(self, s, blob, i))
-                event_list.append(Event(self, s, blob, i))
+                event_list.append(Event(self, s, blob_event, i))
                 # lock.release()
         lock.acquire()
         self.events.append(event_list)
@@ -335,7 +335,7 @@ class Stack:
         shmm_blobs_data.close()
         shmm_regions.close()
         shmm_slices.close()
-        shmm_blobs_mask.close()
+        # shmm_blobs_mask.close()
     # def return_single_event(self, i, blobs, regions, slices,):
     #     print(i)
     #     s           = slices[i]
