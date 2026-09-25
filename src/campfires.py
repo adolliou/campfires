@@ -192,7 +192,6 @@ class Stack:
         # selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool)
         # slices_                 = list(np.array(slices_or)[selection_short])
         # nslices                 = len(slices_)
-        breakpoint()
 
         if parallel:
 
@@ -361,6 +360,8 @@ class Stack:
                 self.events[ii].initialize_stack_parent(self)
         else:
             for i, s in enumerate(tqdm(slices_, desc="add events")):
+                print(f"{s=}")
+
                 self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s, rel_variance, header)
 
             for ii in tqdm(range(len(self.events)), desc="initialize stack"):
