@@ -305,7 +305,7 @@ class Stack:
 
 
             indexes_list_array              = np.array_split(indexes, max_cpu)
-            i_list_array                    = np.array_split(range(slices), max_cpu)
+            i_list_array                    = np.array_split(range(len(slices)), max_cpu)
 
             for pp, i_list in enumerate(i_list_array):
                 indexes_list        = indexes_list_array[pp]
