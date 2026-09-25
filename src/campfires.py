@@ -231,7 +231,7 @@ class Stack:
             blob_tmp                    = blobs_data[sss]
             region_tmp                  = regions[sss]
             blob_event                  = ma.masked_array(blob_tmp, mask=region_tmp != iii + 1)
-            ev                          = Event(sss, blob_event, iii, rel_variance, self.images[0].header)
+            ev                          = Event(sss, blob_event, indexes[iii], rel_variance, self.images[0].header)
 
             ev_array                    = np.array([ev] * len(slices_), dtype="O")
             changed_array               = np.zeros(len(slices_), dtype=bool)
@@ -295,8 +295,6 @@ class Stack:
             del rel_variance
             del ev_array
 
-
-            nslices             = len(slices)
             if max_cpu is None:
                 max_cpu         = mp.cpu_count()
             processes           = []
@@ -306,11 +304,14 @@ class Stack:
             self.vmax           = vmax
 
 
-            i_list_array              = np.array_split(indexes, max_cpu)
+            indexes_list_array              = np.array_split(indexes, max_cpu)
+            i_list_array                    = np.array_split(range(slices_), max_cpu)
 
-            for i_list in i_list_array:
+            for pp, i_list in enumerate(i_list_array):
+                indexes_list        = indexes_list_array[pp]
                 kwargs          = {
-                    "i_list": i_list,
+                    'i_list': i_list,
+                    "indexes_list": indexes_list,
                     "header": header,
                     "lock": self.lock, 
                 }
@@ -356,7 +357,7 @@ class Stack:
 
             for ii in tqdm(range(len(self.events)), desc="initialize stack"):
                 self.events[ii].initialize_stack_parent(self)
-    def return_single_event_list(self, i_list, header, lock):
+    def return_single_event_list(self, i_list, indexes_list, header, lock):
         shmm_blobs_data, blobs_data = gen_shmm(
             create=False, **self._blobs_data_dict
         )
@@ -384,18 +385,18 @@ class Stack:
             create=False, **self._changed_array_dict
         )
 
-        for i in tqdm(i_list):
+        for pp, i in enumerate(tqdm(i_list)):
 
-
+            index                       = indexes_list[pp]
             s                           = tuple(slices[i])
             blob_data_event             = blobs_data[s]
             region_event                = regions[s]        
 
-            blob_event                  = ma.masked_array(blob_data_event, mask=region_event != i + 1)
+            blob_event                  = ma.masked_array(blob_data_event, mask=region_event != index + 1)
             if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blob_event.mask).sum() <= self.vmax):
 
                 lock.acquire()
-                event_array[i]          = Event(s, blob_event, i, rel_variance, header)
+                event_array[i]          = Event(s, blob_event, index, rel_variance, header)
                 changed_array[i]        = True
                 lock.release()
 
