@@ -309,6 +309,7 @@ class Stack:
             processes           = []
             self.lock           = Lock()
             self.dmin           = dmin
+            self.dmax           = dmax
             self.vmin           = vmin
             self.vmax           = vmax
 
