@@ -238,7 +238,7 @@ class Stack:
             sss                         = tuple(slices[iii])
             blob_tmp                    = blobs_data[sss]
             region_tmp                  = regions[sss]
-            blob_event                  = ma.masked_array(blob_tmp, mask=region_tmp != iii + 1)
+            blob_event                  = ma.masked_array(blob_tmp, mask=region_tmp != indexes[iii] + 1)
             ev                          = Event(sss, blob_event, indexes[iii], rel_variance, self.images[0].header)
 
             ev_array                    = np.array([ev] * len(slices_), dtype="O")
