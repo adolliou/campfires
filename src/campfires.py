@@ -323,12 +323,8 @@ class Stack:
                 )
             self._launch_processes(processes, max_cpu)
 
-            breakpoint()
-
-            events_              = copy.deepcopy(event_array)
-            events_              = list(events_[changed_array])
-
-            self.events         = events_     
+            events_              = list(event_array[changed_array])
+            self.events         = copy.deepcopy(events_)     
 
             shmm_blobs_data.close()
             shmm_blobs_data.unlink()
