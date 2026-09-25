@@ -312,10 +312,9 @@ class Stack:
             region              = regions[s]        
 
             blob                = ma.masked_array(blob_data, mask=region != i + 1)
-            event               = Event(self, s, blob, i)
             if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blobs_mask).sum() <= self.vmax):
                 lock.acquire()
-                self.events.append(event)
+                self.events.append(Event(self, s, blob, i))
                 lock.release()
 
 
