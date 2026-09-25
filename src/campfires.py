@@ -187,12 +187,12 @@ class Stack:
         rel_variance            = self.get_relative_variance()
         header                  = self.images[0].header.copy()
 
-
+        selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool)
         slices_                 = tuple([n for n in slices_or if (n[0].stop - n[0].start) < dmin])
-        # selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool)
         # slices_                 = list(np.array(slices_or)[selection_short])
         # nslices                 = len(slices_)
-
+        indexes                 = np.arange(slices_or)
+        indexes                 = indexes[selection_short]
         if parallel:
 
             shmm_blobs_data, blobs_data = gen_shmm(
@@ -236,7 +236,7 @@ class Stack:
             )
 
 
-            iii                         = 1
+            iii                         = 0
             sss                         = tuple(slices[iii])
             blob_tmp                    = blobs_data[sss]
             region_tmp                  = regions[sss]
@@ -315,7 +315,7 @@ class Stack:
             self.vmax           = vmax
 
 
-            i_list_array              = np.array_split(range(nslices), max_cpu)
+            i_list_array              = np.array_split(indexes, max_cpu)
 
             for i_list in i_list_array:
                 kwargs          = {
@@ -359,7 +359,9 @@ class Stack:
             for ii in tqdm(range(len(self.events)), desc="initialize stack"):
                 self.events[ii].initialize_stack_parent(self)
         else:
-            for i, s in enumerate(tqdm(slices_, desc="add events")):
+            for ii, s in enumerate(tqdm(slices_, desc="add events")):
+                i           = indexes[ii]
+
                 print(f"{s=}")
 
                 self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s, rel_variance, header)
