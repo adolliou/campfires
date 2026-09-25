@@ -361,9 +361,6 @@ class Stack:
         else:
             for ii, s in enumerate(tqdm(slices_, desc="add events")):
                 i           = indexes[ii]
-
-                print(f"{s=}")
-
                 self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s, rel_variance, header)
 
             for ii in tqdm(range(len(self.events)), desc="initialize stack"):
