@@ -216,7 +216,15 @@ class Stack:
                         copy.deepcopy(slices_), 
                     dtype="O",
                 ),
-            )  
+            )
+            breakpoint()
+            shmm_slices, slices = gen_shmm(
+                create=True,
+                ndarray=np.array(
+                        copy.deepcopy(slices_), 
+                    dtype="O",
+                ),
+            )              
             
                       
             del blobs
@@ -305,7 +313,7 @@ class Stack:
         shmm_slices, slices = gen_shmm(
             create=False, **self._slices_dict
         )
-
+        event_list          = []
         for i in tqdm(i_list):
 
 
@@ -315,10 +323,13 @@ class Stack:
 
             blob                = ma.masked_array(blob_data, mask=region != i + 1)
             if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blobs_mask).sum() <= self.vmax):
-                lock.acquire()
-                self.events.append(Event(self, s, blob, i))
-                lock.release()
-
+                # lock.acquire()
+                # self.events.append(Event(self, s, blob, i))
+                event_list.append(Event(self, s, blob, i))
+                # lock.release()
+        lock.acquire()
+        self.events.append(event_list)
+        lock.release()
 
         shmm_blobs_data.close()
         shmm_regions.close()
