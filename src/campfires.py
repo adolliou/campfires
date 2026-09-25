@@ -389,7 +389,7 @@ class Stack:
             region_event                = regions[s]        
 
             blob_event                  = ma.masked_array(blob_data_event, mask=region_event != index + 1)
-            if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blob_event.mask).sum() <= self.vmax):
+            if (s[0].stop - s[0].start < self.dmin) & (self.vmin <= (~blob_event.mask).sum() <= self.vmax):
 
                 lock.acquire()
                 event_array[i]          = Event(s, blob_event, index, rel_variance, header)
