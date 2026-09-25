@@ -175,7 +175,7 @@ class Stack:
                 image.blobs2d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation))
         return ma.masked_array(blobs)
 
-    def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
+    def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=0, detection_method='wavelets',
                        saturation=True, parallel = False, max_cpu=15):
 
         blobs                   = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
@@ -745,7 +745,7 @@ class Sequence:
             instruments = [instruments]
         for instr in instruments:
             self.stacks[instr].extract_events(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
-                                              detection_method=self.detection_method, saturation=saturation, elongation_min=None, 
+                                              detection_method=self.detection_method, saturation=saturation, elongation_min=elongation_min, 
                                               parallel = parallel, max_cpu = max_cpu,)
 
     def extract_background(self, instruments=None, sigma=1, n_levels=3, dmin=0, vmin=0, vmax=None):
