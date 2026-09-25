@@ -175,7 +175,7 @@ class Stack:
                 image.blobs2d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation))
         return ma.masked_array(blobs)
 
-    def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets',
+    def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
                        saturation=True, parallel = False, max_cpu=15):
 
         blobs                   = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
@@ -351,7 +351,7 @@ class Stack:
         else:
             for ii, s in enumerate(tqdm(slices_, desc="add events")):
                 i           = indexes[ii]
-                self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s, rel_variance, header)
+                self.add_single_event(dmin, vmin, vmax, elongation_min, blobs, regions_, i, s, rel_variance, header)
 
 
     def return_single_event_list(self, i_list, indexes_list, header, lock):
@@ -405,7 +405,7 @@ class Stack:
         shmm_event_array.close()
         shmm_changed_array.close()
 
-    def add_single_event(self, dmin, vmin, vmax, blobs, regions, i, s, relative_intensity, header):
+    def add_single_event(self, dmin, vmin, vmax, elongation_min, blobs, regions, i, s, relative_intensity, header):
         blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
         # if s[0].stop - s[0].start < dmin:
         #     self.excluded.append(Event(s, blob, i, relative_intensity, header))
@@ -416,6 +416,8 @@ class Stack:
         # else:
         ev          = Event(s, blob, i, relative_intensity, header)
         ev.initialize_stack_parent(self)
+        breakpoint()
+
         self.events.append(ev)
 
 
@@ -718,7 +720,7 @@ class Sequence:
 
         self.masterstack = self.stacks[self.master]
 
-    def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None, saturation=True,
+    def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None, elongation_min=None, saturation=True,
                        parallel = False, max_cpu = None):
         """
         Apply the wavelet "Atrous" decomposition code and extract events on given scale above 
@@ -741,7 +743,7 @@ class Sequence:
             instruments = [instruments]
         for instr in instruments:
             self.stacks[instr].extract_events(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
-                                              detection_method=self.detection_method, saturation=saturation, 
+                                              detection_method=self.detection_method, saturation=saturation, elongation_min=None, 
                                               parallel = parallel, max_cpu = max_cpu,)
 
     def extract_background(self, instruments=None, sigma=1, n_levels=3, dmin=0, vmin=0, vmax=None):
