@@ -183,13 +183,16 @@ class Stack:
             vmax = blobs.size
 
         regions_, nregions      = label(~blobs.mask)
-        slices_or                 = find_objects(regions_)
+        slices_or               = find_objects(regions_)
         rel_variance            = self.get_relative_variance()
         header                  = self.images[0].header.copy()
 
+        selection_size          = np.array([vmin <= (~blobs.mask == n + 1).sum()  <= vmax] for n in range(len(slices_or)))
+        breakpoint()
+
+
         selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool)
         slices_                 = tuple([n for n in slices_or if (n[0].stop - n[0].start) < dmin])
-
         indexes                 = np.arange(len(slices_or), dtype="int")
         indexes                 = indexes[selection_short]
         if parallel:
@@ -322,8 +325,8 @@ class Stack:
                     )
                 )
             self._launch_processes(processes, max_cpu)
-
-            events_              = list(event_array[changed_array])
+            breakpoint()
+            events_             = list(event_array[changed_array])
             self.events         = copy.deepcopy(events_)     
 
             shmm_blobs_data.close()
