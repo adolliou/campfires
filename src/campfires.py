@@ -186,7 +186,7 @@ class Stack:
         slices_or               = find_objects(regions_)
         rel_variance            = self.get_relative_variance()
         header                  = self.images[0].header.copy()
-
+        
         selection_total         = np.array(
             [
                 (vmin <= (regions_[slices_or[n]] == n + 1).sum()  <= vmax) & ((slices_or[n][0].stop - slices_or[n][0].start) < dmin) 
