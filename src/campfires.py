@@ -189,8 +189,7 @@ class Stack:
 
         selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool)
         slices_                 = tuple([n for n in slices_or if (n[0].stop - n[0].start) < dmin])
-        # slices_                 = list(np.array(slices_or)[selection_short])
-        # nslices                 = len(slices_)
+
         indexes                 = np.arange(len(slices_or), dtype="int")
         indexes                 = indexes[selection_short]
         if parallel:
@@ -202,15 +201,6 @@ class Stack:
                     dtype="float32",
                 ),
             )
-
-            # shmm_blobs_mask, blobs_mask = gen_shmm(
-            #     create=True,
-            #     ndarray=np.array(
-            #             copy.deepcopy(blobs.mask), 
-            #         dtype="bool",
-            #     ),
-            # )
-
             shmm_regions, regions = gen_shmm(
                 create=True,
                 ndarray=np.array(
@@ -242,8 +232,9 @@ class Stack:
             region_tmp                  = regions[sss]
             blob_event                  = ma.masked_array(blob_tmp, mask=region_tmp != iii + 1)
             ev                          = Event(sss, blob_event, iii, rel_variance, self.images[0].header)
-            ev_array                    = np.array([ev] * nslices, dtype="O")
-            changed_array               = np.zeros(nslices, dtype=bool)
+
+            ev_array                    = np.array([ev] * len(slices_), dtype="O")
+            changed_array               = np.zeros(len(slices_), dtype=bool)
 
             shmm_event_array, event_array = gen_shmm(
                 create=True,
