@@ -188,10 +188,9 @@ class Stack:
         header                  = self.images[0].header.copy()
 
         selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_], dtype=bool)
-        breakpoint()
         slices_                 = list(np.array(slices_)[selection_short])
-        regions_                = list(np.array(regions_)[selection_short])
-        nregions                = len(regions_)
+        nslices                 = len(slices_)
+
 
         if parallel:
 
@@ -242,8 +241,8 @@ class Stack:
             region_tmp                  = regions[sss]
             blob_event                  = ma.masked_array(blob_tmp, mask=region_tmp != iii + 1)
             ev                          = Event(sss, blob_event, iii, rel_variance, self.images[0].header)
-            ev_array                    = np.array([ev] * nregions, dtype="O")
-            changed_array               = np.zeros(nregions, dtype=bool)
+            ev_array                    = np.array([ev] * nslices, dtype="O")
+            changed_array               = np.zeros(nslices, dtype=bool)
 
             shmm_event_array, event_array = gen_shmm(
                 create=True,
