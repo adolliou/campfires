@@ -183,7 +183,8 @@ class Stack:
             vmax = blobs.size
 
         regions_, nregions      = label(~blobs.mask)
-        slices_                 = find_objects(regions_)
+        slices_                 = find_objects(regions_)    
+        breakpoint()
         if parallel:
 
             shmm_blobs_data, blobs_data = gen_shmm(
@@ -216,7 +217,9 @@ class Stack:
                         copy.deepcopy(slices_), 
                     dtype="O",
                 ),
-            )            
+            )  
+            
+                      
             del blobs
             del regions_
             del slices_
