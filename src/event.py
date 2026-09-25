@@ -243,6 +243,8 @@ class Event:
         area = mask.sum(axis=(1, 2))
         s = area.argmax()
         props = regionprops(np.uint8(mask[s]), intensity_image=self.blob.data[s])
+        breakpoint()
+
         self.feret_diameter = props[0].feret_diameter_max
         major = props[0].axis_major_length
         if major == 0:
