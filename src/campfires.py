@@ -252,11 +252,6 @@ class Stack:
                 )
                            
             
-            del blobs
-            del regions_
-            del slices_
-            del rel_variance
-            del ev_array
 
             self._blobs_data_dict = {
                 "name": shmm_blobs_data.name,
@@ -297,6 +292,13 @@ class Stack:
                 "dtype": changed_array.dtype,
                 "shape": changed_array.shape,
             }
+
+            del blobs
+            del regions_
+            del slices_
+            del rel_variance
+            del ev_array
+
 
             nslices             = len(slices)
             if max_cpu is None:
