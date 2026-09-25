@@ -187,7 +187,7 @@ class Stack:
         rel_variance            = self.get_relative_variance()
         header                  = self.images[0].header.copy()
 
-        selection_size          = np.array([vmin <= (~blobs.mask == n + 1).sum()  <= vmax for n in range(len(slices_or))], dtype=bool)
+        selection_size          = np.array([vmin <= (regions_ == n + 1).sum()  <= vmax for n in range(len(slices_or))], dtype=bool)
         selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool)
 
         selection_total         = np.logical_and(selection_size, selection_short)
