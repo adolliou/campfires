@@ -85,6 +85,7 @@ class Event:
         self.xmax, self.ymax, self.tmax = None, None, None
         self.index = index
         self.parent_stack = None
+        self.header             = header
         self.slc = (slc[0],
                     slice(slc[1].start - 1, slc[1].stop + 1),
                     slice(slc[2].start - 1, slc[2].stop + 1))
@@ -143,7 +144,6 @@ class Event:
 
         mask                    = (~self.blob.mask).sum(axis=0) > 0
         self.score              = np.mean(rel_variance[self.slc[1:]][mask])
-        self.header             = header
 
     def initialize_stack_parent(self, parent):
         self.parent_stack       = parent
