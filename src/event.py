@@ -114,8 +114,8 @@ class Event:
         self.image_coords = np.nan, np.nan
         self.carrington_coords = np.nan, np.nan
         self.stats()
-        self.score = self.get_score()
-
+        mask                    = (~self.blob.mask).sum(axis=0) > 0
+        self.score              = np.mean(rel_variance[self.slc[1:]][mask])
         # Computed later by compute_heights
         # self.shift = np.nan, np.nan
         # self.height = np.nan
@@ -142,8 +142,6 @@ class Event:
         self.carrington_coords_fort = np.full((60, 2), np.nan)
 
 
-        mask                    = (~self.blob.mask).sum(axis=0) > 0
-        self.score              = np.mean(rel_variance[self.slc[1:]][mask])
 
     def initialize_stack_parent(self, parent):
         self.parent_stack       = parent
@@ -180,15 +178,15 @@ class Event:
 
         return rgb_contour
 
-    def get_score(self):
-        """
-        Computes the score, defined as the mean of the relative variance (variance normalized to the mean).
+    # def get_score(self):
+    #     """
+    #     Computes the score, defined as the mean of the relative variance (variance normalized to the mean).
 
-        :return: the score
-        """
-        # mask = (~self.blob.mask).sum(axis=0) > 0
-        # relative_variance = self.parent_stack.get_relative_variance()
-        return self.score
+    #     :return: the score
+    #     """
+    #     # mask = (~self.blob.mask).sum(axis=0) > 0
+    #     # relative_variance = self.parent_stack.get_relative_variance()
+    #     return self.score
 
     def stats(self):
         """
