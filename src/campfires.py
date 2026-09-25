@@ -417,8 +417,13 @@ class Stack:
         ev          = Event(s, blob, i, relative_intensity, header)
         ev.initialize_stack_parent(self)
         breakpoint()
-
-        self.events.append(ev)
+        if elongation_min is not None:
+            if ev.ellipse_parameters[0]/ev.ellipse_parameters[1] > elongation_min:
+                self.events.append(ev)
+            else:
+                pass
+        else:
+            self.events.append(ev)
 
 
     def extract_background(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets'):
