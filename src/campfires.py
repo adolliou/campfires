@@ -189,7 +189,7 @@ class Stack:
 
         selection_total         = np.array(
             [
-                (vmin <= (regions_[slices_or[n]] == n + 1).sum()  <= vmax) & ((slices_or[n][0].stop - slices_or[n][0].start) < dmin) 
+                (vmin <= (regions_[slices_or[n]] == n + 1).sum()  <= vmax) & ((dmin < slices_or[n][0].stop - slices_or[n][0].start) ) 
                 for n in range(len(slices_or))
                 ]
                 , dtype=bool)
@@ -353,8 +353,7 @@ class Stack:
                 i           = indexes[ii]
                 self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s, rel_variance, header)
 
-            for ii in tqdm(range(len(self.events)), desc="initialize stack"):
-                self.events[ii].initialize_stack_parent(self)
+
     def return_single_event_list(self, i_list, indexes_list, header, lock):
         shmm_blobs_data, blobs_data = gen_shmm(
             create=False, **self._blobs_data_dict
@@ -379,7 +378,7 @@ class Stack:
         shmm_changed_array, changed_array = gen_shmm(
             create=False, **self._changed_array_dict
         )
-
+        event_list      = []
         for pp, i in enumerate(tqdm(i_list)):
 
             index                       = indexes_list[pp]
@@ -388,13 +387,16 @@ class Stack:
             region_event                = regions[s]        
 
             blob_event                  = ma.masked_array(blob_data_event, mask=region_event != index + 1)
-            if (s[0].stop - s[0].start < self.dmin) & (self.vmin <= (~blob_event.mask).sum() <= self.vmax):
-
-                lock.acquire()
-                self.events.append(Event(s, blob_event, index, rel_variance, header))
+            event_list.append(Event(s, blob_event, index, rel_variance, header))
+            # if (s[0].stop - s[0].start < self.dmin) & (self.vmin <= (~blob_event.mask).sum() <= self.vmax):
+                # event
+            # self.events.append(Event(s, blob_event, index, rel_variance, header))
                 # event_array[i]          = 
                 # changed_array[i]        = True
-                lock.release()
+        lock.acquire()
+        for ev in tqdm(event_list, desc="add events to list"):
+            self.events.append(ev)
+        lock.release()
 
         shmm_blobs_data.close()
         shmm_regions.close()
@@ -405,16 +407,16 @@ class Stack:
 
     def add_single_event(self, dmin, vmin, vmax, blobs, regions, i, s, relative_intensity, header):
         blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
-        if s[0].stop - s[0].start < dmin:
-            self.excluded.append(Event(s, blob, i, relative_intensity, header))
-                    # blobs.mask[s][~blob.mask] = True
-        elif not vmin <= (~blob.mask).sum() <= vmax:
-            self.excluded.append(Event(s, blob, i, relative_intensity, header))
-                    # blobs.mask[s][~blob.mask] = True
-        else:
-            ev = Event(s, blob, i, relative_intensity, header)
-            breakpoint()
-            self.events.append(ev)
+        # if s[0].stop - s[0].start < dmin:
+        #     self.excluded.append(Event(s, blob, i, relative_intensity, header))
+        #             # blobs.mask[s][~blob.mask] = True
+        # elif not vmin <= (~blob.mask).sum() <= vmax:
+        #     self.excluded.append(Event(s, blob, i, relative_intensity, header))
+        #             # blobs.mask[s][~blob.mask] = True
+        # else:
+        ev          = Event(s, blob, i, relative_intensity, header)
+        ev.initialize_stack_parent(self)
+        self.events.append(ev)
 
 
     def extract_background(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets'):
