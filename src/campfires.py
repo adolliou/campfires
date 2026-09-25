@@ -416,7 +416,6 @@ class Stack:
         # else:
         ev          = Event(s, blob, i, relative_intensity, header)
         ev.initialize_stack_parent(self)
-        breakpoint()
         if elongation_min is not None:
             if ev.ellipse_parameters[0]/ev.ellipse_parameters[1] > elongation_min:
                 self.events.append(ev)
