@@ -198,8 +198,6 @@ class Stack:
         indexes                 = indexes[selection_total]
         slices_                 = tuple([slices_or[n] for n in range(len(slices_or)) if selection_total[n]])
 
-        breakpoint()
-
         if parallel:
 
             shmm_blobs_data, blobs_data = gen_shmm(
@@ -262,11 +260,7 @@ class Stack:
                 "dtype": blobs_data.dtype,
                 "shape": blobs_data.shape,
             }
-            # self._blobs_mask_dict = {
-            #     "name": shmm_blobs_mask.name,
-            #     "dtype": blobs_mask.dtype,
-            #     "shape": blobs_mask.shape,
-            # }            
+
             self._regions_dict = {
                 "name": shmm_regions.name,
                 "dtype": regions.dtype,
@@ -366,9 +360,6 @@ class Stack:
             create=False, **self._blobs_data_dict
         )
 
-        # shmm_blobs_mask, blobs_mask = gen_shmm(
-        #     create=False, **self._blobs_mask_dict
-        # )
 
         shmm_regions, regions = gen_shmm(
             create=False, **self._regions_dict
@@ -400,8 +391,9 @@ class Stack:
             if (s[0].stop - s[0].start < self.dmin) & (self.vmin <= (~blob_event.mask).sum() <= self.vmax):
 
                 lock.acquire()
-                event_array[i]          = Event(s, blob_event, index, rel_variance, header)
-                changed_array[i]        = True
+                self.events.append(Event(s, blob_event, index, rel_variance, header))
+                # event_array[i]          = 
+                # changed_array[i]        = True
                 lock.release()
 
         shmm_blobs_data.close()
