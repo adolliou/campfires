@@ -217,14 +217,15 @@ class Stack:
                     dtype="O",
                 ),
             )
-            breakpoint()
-            shmm_slices, slices = gen_shmm(
-                create=True,
-                ndarray=np.array(
-                        copy.deepcopy(slices_), 
-                    dtype="O",
-                ),
-            )              
+            iii                         = 1
+            sss                         = tuple(slices[iii])
+            blob_tmp                    = blobs_data[sss]
+            region_tmp                  = regions[sss]
+            breakpoint()       
+            blob                        = ma.masked_array(blob_tmp, mask=region_tmp != iii + 1)
+
+            Event(self, s, blobs, i)
+            shmm_slices, slices = gen_shmm(create=True,ndarray=np.array(copy.deepcopy(slices_), dtype="O",),)
             
                       
             del blobs
