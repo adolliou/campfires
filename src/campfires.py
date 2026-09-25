@@ -346,7 +346,9 @@ class Stack:
             self.excluded.append(Event(self, s, blob, i))
                     # blobs.mask[s][~blob.mask] = True
         else:
-            self.events.append(Event(self, s, blob, i))
+            ev = Event(self, s, blob, i)
+            breakpoint()
+            self.events.append(ev)
 
 
     def extract_background(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets'):
