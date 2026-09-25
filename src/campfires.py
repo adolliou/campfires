@@ -191,7 +191,7 @@ class Stack:
         slices_                 = tuple([n for n in slices_or if (n[0].stop - n[0].start) < dmin])
         # slices_                 = list(np.array(slices_or)[selection_short])
         # nslices                 = len(slices_)
-        indexes                 = np.arange(slices_or, dtype="int")
+        indexes                 = np.arange(len(slices_or), dtype="int")
         indexes                 = indexes[selection_short]
         if parallel:
 
