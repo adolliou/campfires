@@ -44,7 +44,7 @@ class Event:
         raise NotImplementedError
 
     # def __init__(self, parent, slc, blob, index):
-    def __init__(self, slc, blob, index, rel_variance):
+    def __init__(self, slc, blob, index, rel_variance, header):
 
 
         """
@@ -143,6 +143,16 @@ class Event:
 
         mask                    = (~self.blob.mask).sum(axis=0) > 0
         self.score              = np.mean(rel_variance[self.slc[1:]][mask])
+        self.header             = header
+
+    def initialize_stack_parent(self, parent):
+        self.parent_stack       = parent
+        self.height_fort = np.full(parent.n_images, np.nan)
+        self.min_segment_fort = np.full(parent.n_images, np.nan)
+        self.shift_fort = np.full((parent.n_images, 2), np.nan)
+        self.corrcoeff_fort = np.full(parent.n_images, np.nan)
+        self.image_coords_fort = np.full((parent.n_images, 2), np.nan)
+        self.carrington_coords_fort = np.full((parent.n_images, 2), np.nan)      
 
     def make_rgb_contour(self, flatten=False):
         """
@@ -214,7 +224,8 @@ class Event:
         self.ybary = self.slc[1].start + ybary
         self.tbary = self.slc[0].start + tbary
         self.relative_variance = self.variance / self.mean_light_curve.mean()
-        hd1 = self.parent_stack.images[0].header
+
+        hd1 = self.header
         if "MAPPINGR" in hd1:
             transform = rectify.CarringtonTransform(hd1,
                                                     radius_correction=hd1["MAPPINGR"] / astropy.constants.R_sun.value)

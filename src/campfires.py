@@ -236,7 +236,7 @@ class Stack:
             region_tmp                  = regions[sss]
             blob_event                  = ma.masked_array(blob_tmp, mask=region_tmp != iii + 1)
             breakpoint()
-            ev                          = Event(sss, blob_event, iii)
+            ev                          = Event(sss, blob_event, iii, rel_variance, self.images[0].header)
             shmm_slices, slices = gen_shmm(create=True,ndarray=np.array(copy.deepcopy(slices_), dtype="O",),)
             
             self.parent_stack.get_relative_variance()
@@ -290,6 +290,7 @@ class Stack:
             for i_list in i_list_array:
                 kwargs          = {
                     "i_list": i_list,
+                    "header": self.images[0].header.copy(),
                     "lock": self.lock, 
                 }
                 processes.append(
@@ -315,12 +316,13 @@ class Stack:
             shmm_rel_variance.close()
             shmm_rel_variance.unlink()
 
-
+            for ii in tqdm(range(len(self.events)), desc="initialize stack"):
+                self.events[ii].initialize_stack_parent(self)
         else:
             for i, s in enumerate(tqdm(slices_, desc="add events")):
                 self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s)
 
-    def return_single_event_list(self, i_list, lock):
+    def return_single_event_list(self, i_list, header, lock):
         shmm_blobs_data, blobs_data = gen_shmm(
             create=False, **self._blobs_data_dict
         )
@@ -354,7 +356,7 @@ class Stack:
                 # lock.acquire()
                 # self.events.append(Event(self, s, blob, i))
                 lock.acquire()
-                self.events.append(Event(self, s, blob_event, i, rel_variance))
+                self.events.append(Event(self, s, blob_event, i, rel_variance, header))
                 lock.release()
 
         shmm_blobs_data.close()
