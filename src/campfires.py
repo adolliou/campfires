@@ -187,10 +187,13 @@ class Stack:
         rel_variance            = self.get_relative_variance()
         header                  = self.images[0].header.copy()
 
-        selection_total          = np.logical_and(
-            np.array([vmin <= (regions_[slices_or[n]] == n + 1).sum()  <= vmax for n in range(len(slices_or))], dtype=bool), 
-            np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool), 
-        )
+        selection_total         = np.array(
+            [
+                (vmin <= (regions_[slices_or[n]] == n + 1).sum()  <= vmax) & ((slices_or[n][0].stop - slices_or[n][0].start) < dmin) 
+                for n in range(len(slices_or))
+                ]
+                , dtype=bool), 
+        
         # selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool)
 
         # selection_total         = np.logical_and(selection_size, selection_short)
