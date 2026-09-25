@@ -184,9 +184,10 @@ class Stack:
 
         regions_, nregions      = label(~blobs.mask)
         slices_                 = find_objects(regions_)    
-        breakpoint()       
+        breakpoint()
 
         if parallel:
+            rel_variance            = self.get_relative_variance()
 
             shmm_blobs_data, blobs_data = gen_shmm(
                 create=True,
@@ -220,11 +221,11 @@ class Stack:
                 ),
             )
 
-            shmm_rel_variance, slices = gen_shmm(
+            shmm_rel_variance, rel_variance = gen_shmm(
                 create=True,
                 ndarray=np.array(
-                        copy.deepcopy(slices_), 
-                    dtype="O",
+                        copy.deepcopy(rel_variance), 
+                    dtype="float32",
                 ),
             )
 
@@ -243,6 +244,7 @@ class Stack:
             del blobs
             del regions_
             del slices_
+            del rel_variance
 
             self._blobs_data_dict = {
                 "name": shmm_blobs_data.name,
@@ -266,6 +268,11 @@ class Stack:
                 "shape": slices.shape,
             }
 
+            self._rel_variance_dict = {
+                "name": shmm_rel_variance.name,
+                "dtype": rel_variance.dtype,
+                "shape": rel_variance.shape,
+            }
 
             nslices             = len(slices)
             if max_cpu is None:
@@ -306,6 +313,9 @@ class Stack:
             shmm_slices.close()
             shmm_slices.unlink()
 
+            shmm_rel_variance.close()
+            shmm_rel_variance.unlink()
+
         else:
             for i, s in enumerate(tqdm(slices_, desc="add events")):
                 self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s)
@@ -326,6 +336,12 @@ class Stack:
         shmm_slices, slices = gen_shmm(
             create=False, **self._slices_dict
         )
+
+        shmm_rel_variance, rel_variance = gen_shmm(
+            create=False, **self._rel_variance_dict
+        )
+
+
         event_list          = []
         for i in tqdm(i_list):
 
@@ -347,6 +363,7 @@ class Stack:
         shmm_blobs_data.close()
         shmm_regions.close()
         shmm_slices.close()
+        shmm_rel_variance.close()
         # shmm_blobs_mask.close()
     # def return_single_event(self, i, blobs, regions, slices,):
     #     print(i)

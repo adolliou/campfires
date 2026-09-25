@@ -44,7 +44,7 @@ class Event:
         raise NotImplementedError
 
     # def __init__(self, parent, slc, blob, index):
-    def __init__(self, slc, blob, index):
+    def __init__(self, slc, blob, index, rel_variance):
 
 
         """
@@ -140,6 +140,10 @@ class Event:
         self.image_coords_fort = np.full((60, 2), np.nan)
         self.carrington_coords_fort = np.full((60, 2), np.nan)
 
+
+        mask                    = (~self.blob.mask).sum(axis=0) > 0
+        self.score              = np.mean(rel_variance[self.slc[1:]][mask])
+
     def make_rgb_contour(self, flatten=False):
         """
         Creates a colored contour af the event
@@ -172,9 +176,9 @@ class Event:
 
         :return: the score
         """
-        mask = (~self.blob.mask).sum(axis=0) > 0
-        relative_variance = self.parent_stack.get_relative_variance()
-        return np.mean(relative_variance[self.slc[1:]][mask])
+        # mask = (~self.blob.mask).sum(axis=0) > 0
+        # relative_variance = self.parent_stack.get_relative_variance()
+        return self.score
 
     def stats(self):
         """
