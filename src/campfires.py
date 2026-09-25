@@ -184,7 +184,6 @@ class Stack:
 
         regions_, nregions      = label(~blobs.mask)
         slices_                 = find_objects(regions_)    
-        breakpoint()
 
         if parallel:
             rel_variance            = self.get_relative_variance()
@@ -236,7 +235,7 @@ class Stack:
             blob_tmp                    = blobs_data[sss]
             region_tmp                  = regions[sss]
             blob_event                  = ma.masked_array(blob_tmp, mask=region_tmp != iii + 1)
-
+            breakpoint()
             ev                          = Event(sss, blob_event, iii)
             shmm_slices, slices = gen_shmm(create=True,ndarray=np.array(copy.deepcopy(slices_), dtype="O",),)
             
@@ -316,6 +315,7 @@ class Stack:
             shmm_rel_variance.close()
             shmm_rel_variance.unlink()
 
+
         else:
             for i, s in enumerate(tqdm(slices_, desc="add events")):
                 self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s)
@@ -342,7 +342,6 @@ class Stack:
         )
 
 
-        event_list          = []
         for i in tqdm(i_list):
 
 
@@ -354,11 +353,9 @@ class Stack:
             if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blob_event.mask).sum() <= self.vmax):
                 # lock.acquire()
                 # self.events.append(Event(self, s, blob, i))
-                event_list.append(Event(self, s, blob_event, i))
-                # lock.release()
-        lock.acquire()
-        self.events.append(event_list)
-        lock.release()
+                lock.acquire()
+                self.events.append(Event(self, s, blob_event, i, rel_variance))
+                lock.release()
 
         shmm_blobs_data.close()
         shmm_regions.close()
