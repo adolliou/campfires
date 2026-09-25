@@ -194,10 +194,10 @@ class Stack:
                 ]
                 , dtype=bool)
 
-
-        slices_                 = tuple(slices_or[n] for n in range(slices_or) if selection_total[n])
         indexes                 = np.arange(len(slices_or), dtype="int")
         indexes                 = indexes[selection_total]
+        slices_                 = tuple(slices_or[n] for n in range(len(slices_or)) if selection_total[n])
+
         breakpoint()
 
         if parallel:
