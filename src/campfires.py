@@ -269,10 +269,7 @@ class Stack:
                         kwargs      = kwargs, 
                     )
                 )
-            breakpoint()
-
             self._launch_processes(processes, max_cpu)
-            breakpoint()
 
             shmm_blobs_data.close()
             shmm_blobs_data.unlink()
@@ -291,22 +288,25 @@ class Stack:
                 self.add_single_event(dmin, vmin, vmax, blobs, regions, i, s)
 
     def return_single_event_list(self, i_list, lock):
+        shmm_blobs_data, blobs_data = gen_shmm(
+            create=False, **self._blobs_data_dict
+        )
+
+        shmm_blobs_mask, blobs_mask = gen_shmm(
+            create=False, **self._blobs_mask_dict
+        )
+
+        shmm_regions, regions = gen_shmm(
+            create=False, **self._regions_dict
+        )
+
+        shmm_slices, slices = gen_shmm(
+            create=False, **self._slices_dict
+        )
+
         for i in tqdm(i_list):
-            shmm_blobs_data, blobs_data = gen_shmm(
-                create=False, **self._blobs_data_dict
-            )
 
-            shmm_blobs_mask, blobs_mask = gen_shmm(
-                create=False, **self._blobs_mask_dict
-            )
 
-            shmm_regions, regions = gen_shmm(
-                create=False, **self._regions_dict
-            )
-
-            shmm_slices, slices = gen_shmm(
-                create=False, **self._slices_dict
-            )
             s                   = tuple(slices[i])
             blob_data           = blobs_data[s]
             region              = regions[s]        
@@ -319,10 +319,10 @@ class Stack:
                 lock.release()
 
 
-            shmm_blobs_data.close()
-            shmm_regions.close()
-            shmm_slices.close()
-            shmm_blobs_mask.close()
+        shmm_blobs_data.close()
+        shmm_regions.close()
+        shmm_slices.close()
+        shmm_blobs_mask.close()
     # def return_single_event(self, i, blobs, regions, slices,):
     #     print(i)
     #     s           = slices[i]
