@@ -187,9 +187,11 @@ class Stack:
         rel_variance            = self.get_relative_variance()
         header                  = self.images[0].header.copy()
 
-        selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool)
-        slices_                 = list(np.array(slices_or)[selection_short])
-        nslices                 = len(slices_)
+
+        slices_                 = tuple([n for n in slices_or if (n[0].stop - n[0].start) < dmin])
+        # selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool)
+        # slices_                 = list(np.array(slices_or)[selection_short])
+        # nslices                 = len(slices_)
         breakpoint()
 
         if parallel:
