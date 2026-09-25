@@ -286,8 +286,8 @@ class Stack:
             shmm_slices.unlink()
 
         else:
-            for i, s in enumerate(tqdm(slices, desc="add events")):
-                self.add_single_event(dmin, vmin, vmax, blobs, regions, i, s)
+            for i, s in enumerate(tqdm(slices_, desc="add events")):
+                self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s)
 
     def return_single_event_list(self, i_list, lock):
         shmm_blobs_data, blobs_data = gen_shmm(
