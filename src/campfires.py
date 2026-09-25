@@ -1385,9 +1385,6 @@ class Sequence:
         else:
             events = [ev for ev in self.stacks[instrument].events if
                       ev.slc[0].start > 0 and ev.slc[0].stop < len(self.stacks[instrument])]
-
-        print(len(events))
-
         fig, ax = plt.subplots(3, 3, figsize=(18, 18))
         _, hdr = self.masterstack.images[0].get()
         dt = 5.0
