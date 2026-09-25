@@ -184,6 +184,8 @@ class Stack:
 
         regions_, nregions      = label(~blobs.mask)
         slices_                 = find_objects(regions_)    
+        breakpoint()       
+
         if parallel:
 
             shmm_blobs_data, blobs_data = gen_shmm(
@@ -217,17 +219,27 @@ class Stack:
                     dtype="O",
                 ),
             )
+
+            shmm_rel_variance, slices = gen_shmm(
+                create=True,
+                ndarray=np.array(
+                        copy.deepcopy(slices_), 
+                    dtype="O",
+                ),
+            )
+
+
+
             iii                         = 1
             sss                         = tuple(slices[iii])
             blob_tmp                    = blobs_data[sss]
             region_tmp                  = regions[sss]
-            breakpoint()       
-            blob                        = ma.masked_array(blob_tmp, mask=region_tmp != iii + 1)
+            blob_event                  = ma.masked_array(blob_tmp, mask=region_tmp != iii + 1)
 
-            Event(self, s, blobs, i)
+            ev                          = Event(sss, blob_event, iii)
             shmm_slices, slices = gen_shmm(create=True,ndarray=np.array(copy.deepcopy(slices_), dtype="O",),)
             
-                      
+            self.parent_stack.get_relative_variance()
             del blobs
             del regions_
             del slices_

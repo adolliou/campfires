@@ -43,7 +43,9 @@ class Event:
         """
         raise NotImplementedError
 
-    def __init__(self, parent, slc, blob, index):
+    # def __init__(self, parent, slc, blob, index):
+    def __init__(self, slc, blob, index):
+
 
         """
         index: event number, as returned by label
@@ -82,7 +84,7 @@ class Event:
         self.ellipse_parameters = None
         self.xmax, self.ymax, self.tmax = None, None, None
         self.index = index
-        self.parent_stack = parent
+        self.parent_stack = None
         self.slc = (slc[0],
                     slice(slc[1].start - 1, slc[1].stop + 1),
                     slice(slc[2].start - 1, slc[2].stop + 1))
@@ -114,17 +116,29 @@ class Event:
         self.score = self.get_score()
 
         # Computed later by compute_heights
+        # self.shift = np.nan, np.nan
+        # self.height = np.nan
+        # self.corrcoeff = np.nan
+        # self.min_segment = np.nan
+
+        # self.height_fort = np.full(parent.n_images, np.nan)
+        # self.min_segment_fort = np.full(parent.n_images, np.nan)
+        # self.shift_fort = np.full((parent.n_images, 2), np.nan)
+        # self.corrcoeff_fort = np.full(parent.n_images, np.nan)
+        # self.image_coords_fort = np.full((parent.n_images, 2), np.nan)
+        # self.carrington_coords_fort = np.full((parent.n_images, 2), np.nan)
+
         self.shift = np.nan, np.nan
         self.height = np.nan
         self.corrcoeff = np.nan
         self.min_segment = np.nan
 
-        self.height_fort = np.full(parent.n_images, np.nan)
-        self.min_segment_fort = np.full(parent.n_images, np.nan)
-        self.shift_fort = np.full((parent.n_images, 2), np.nan)
-        self.corrcoeff_fort = np.full(parent.n_images, np.nan)
-        self.image_coords_fort = np.full((parent.n_images, 2), np.nan)
-        self.carrington_coords_fort = np.full((parent.n_images, 2), np.nan)
+        self.height_fort = np.full(60, np.nan)
+        self.min_segment_fort = np.full(60, np.nan)
+        self.shift_fort = np.full((60, 2), np.nan)
+        self.corrcoeff_fort = np.full(60, np.nan)
+        self.image_coords_fort = np.full((60, 2), np.nan)
+        self.carrington_coords_fort = np.full((60, 2), np.nan)
 
     def make_rgb_contour(self, flatten=False):
         """
