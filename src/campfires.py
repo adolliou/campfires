@@ -183,14 +183,14 @@ class Stack:
             vmax = blobs.size
 
         regions_, nregions      = label(~blobs.mask)
-        slices_                 = find_objects(regions_)
+        slices_or                 = find_objects(regions_)
         rel_variance            = self.get_relative_variance()
         header                  = self.images[0].header.copy()
 
-        selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_], dtype=bool)
-        slices_                 = list(np.array(slices_)[selection_short])
+        selection_short         = np.array([(n[0].stop - n[0].start) < dmin for n in slices_or], dtype=bool)
+        slices_                 = (np.array(slices_)[selection_short])
         nslices                 = len(slices_)
-
+        breakpoint()
 
         if parallel:
 
