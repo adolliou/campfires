@@ -416,13 +416,10 @@ class Stack:
         # else:
         ev          = Event(s, blob, i, relative_intensity, header)
         ev.initialize_stack_parent(self)
-        if elongation_min is not None:
-            if ev.ellipse_parameters[0]/ev.ellipse_parameters[1] > elongation_min:
-                self.events.append(ev)
-            else:
-                pass
-        else:
+        if ev.ellipse_parameters[0]/ev.ellipse_parameters[1] > elongation_min:
             self.events.append(ev)
+        else:
+            pass
 
 
     def extract_background(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets'):
@@ -724,7 +721,7 @@ class Sequence:
 
         self.masterstack = self.stacks[self.master]
 
-    def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None, elongation_min=None, saturation=True,
+    def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None, elongation_min=0, saturation=True,
                        parallel = False, max_cpu = None):
         """
         Apply the wavelet "Atrous" decomposition code and extract events on given scale above 
@@ -739,9 +736,10 @@ class Sequence:
             vmax (_type_, optional): _description_. Defaults to None.
             saturation (bool, optional): _description_. Defaults to True.
         """        
-        self.sigma = sigma
-        self.n_levels = n_levels
-        self.dmin = dmin
+        self.sigma                  = sigma
+        self.n_levels               = n_levels
+        self.dmin                   = dmin
+        self.elongation_min         = elongation_min
         if instruments is None: instruments = [self.master]
         if type(instruments) is not list:
             instruments = [instruments]
@@ -814,7 +812,7 @@ class Sequence:
     def file_suffix(self):
         suffix = self.detection_method
         if self.detection_method == "wavelets":
-            suffix = suffix + f"_sigma{self.sigma}_levels{self.n_levels}_dmin{self.dmin}"
+            suffix = suffix + f"_sigma{self.sigma}_levels{self.n_levels}_dmin{self.dmin}_elongmin{self.elongation_min}"
         else:
             suffix += f"_dmin{self.dmin}"
         return suffix
