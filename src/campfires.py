@@ -183,10 +183,12 @@ class Stack:
             vmax = blobs.size
 
         regions_, nregions      = label(~blobs.mask)
-        slices_                 = find_objects(regions_)    
+        slices_                 = find_objects(regions_)
+        rel_variance            = self.get_relative_variance()
+        header                  = self.images[0].header.copy()
+
 
         if parallel:
-            rel_variance            = self.get_relative_variance()
 
             shmm_blobs_data, blobs_data = gen_shmm(
                 create=True,
@@ -229,21 +231,33 @@ class Stack:
             )
 
 
-
             iii                         = 1
             sss                         = tuple(slices[iii])
             blob_tmp                    = blobs_data[sss]
             region_tmp                  = regions[sss]
             blob_event                  = ma.masked_array(blob_tmp, mask=region_tmp != iii + 1)
-            breakpoint()
             ev                          = Event(sss, blob_event, iii, rel_variance, self.images[0].header)
-            shmm_slices, slices = gen_shmm(create=True,ndarray=np.array(copy.deepcopy(slices_), dtype="O",),)
+            ev_array                    = np.array([ev] * nregions, dtype="O")
+            changed_array               = np.zeros(nregions, dtype=bool)
+
+            shmm_event_array, event_array = gen_shmm(
+                create=True,
+                ndarray=copy.deepcopy(ev_array), 
+                dtype="O",
+                )
+            shmm_changed_array, changed_array = gen_shmm(
+                create=True,
+                ndarray=copy.deepcopy(changed_array), 
+                dtype=bool,
+                )
+                           
             
             self.parent_stack.get_relative_variance()
             del blobs
             del regions_
             del slices_
             del rel_variance
+            del ev_array
 
             self._blobs_data_dict = {
                 "name": shmm_blobs_data.name,
@@ -273,6 +287,18 @@ class Stack:
                 "shape": rel_variance.shape,
             }
 
+            self._event_array_dict = {
+                "name": shmm_event_array.name,
+                "dtype": event_array.dtype,
+                "shape": event_array.shape,
+            }
+
+            self._changed_array_dict = {
+                "name": shmm_changed_array.name,
+                "dtype": changed_array.dtype,
+                "shape": changed_array.shape,
+            }
+
             nslices             = len(slices)
             if max_cpu is None:
                 max_cpu         = mp.cpu_count()
@@ -285,12 +311,10 @@ class Stack:
 
             i_list_array              = np.array_split(range(nslices), max_cpu)
 
-
-
             for i_list in i_list_array:
                 kwargs          = {
                     "i_list": i_list,
-                    "header": self.images[0].header.copy(),
+                    "header": header,
                     "lock": self.lock, 
                 }
                 processes.append(
@@ -301,11 +325,15 @@ class Stack:
                 )
             self._launch_processes(processes, max_cpu)
 
+            breakpoint()
+
+            events_              = copy.deepcopy(event_array)
+            events_              = list(events_[changed_array])
+
+            self.events         = events_     
+
             shmm_blobs_data.close()
             shmm_blobs_data.unlink()
-
-            # shmm_blobs_mask.close()
-            # shmm_blobs_mask.unlink()
 
             shmm_regions.close()
             shmm_regions.unlink()
@@ -316,12 +344,20 @@ class Stack:
             shmm_rel_variance.close()
             shmm_rel_variance.unlink()
 
+            shmm_event_array.close()
+            shmm_event_array.unlink()
+
+            shmm_changed_array.close()
+            shmm_changed_array.unlink()
+
             for ii in tqdm(range(len(self.events)), desc="initialize stack"):
                 self.events[ii].initialize_stack_parent(self)
         else:
             for i, s in enumerate(tqdm(slices_, desc="add events")):
-                self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s)
+                self.add_single_event(dmin, vmin, vmax, blobs, regions_, i, s, rel_variance, header)
 
+            for ii in tqdm(range(len(self.events)), desc="initialize stack"):
+                self.events[ii].initialize_stack_parent(self)
     def return_single_event_list(self, i_list, header, lock):
         shmm_blobs_data, blobs_data = gen_shmm(
             create=False, **self._blobs_data_dict
@@ -343,6 +379,12 @@ class Stack:
             create=False, **self._rel_variance_dict
         )
 
+        shmm_event_array, event_array = gen_shmm(
+            create=False, **self._event_array_dict
+        )
+        shmm_changed_array, changed_array = gen_shmm(
+            create=False, **self._changed_array_dict
+        )
 
         for i in tqdm(i_list):
 
@@ -353,33 +395,20 @@ class Stack:
 
             blob_event                  = ma.masked_array(blob_data_event, mask=region_event != i + 1)
             if (s[0].stop - s[0].start < self.dmin) & (not self.vmin <= (~blob_event.mask).sum() <= self.vmax):
-                # lock.acquire()
-                # self.events.append(Event(self, s, blob, i))
+
                 lock.acquire()
-                self.events.append(Event(self, s, blob_event, i, rel_variance, header))
+                event_array[i]          = Event(self, s, blob_event, i, rel_variance, header)
+                changed_array[i]        = True
                 lock.release()
 
         shmm_blobs_data.close()
         shmm_regions.close()
         shmm_slices.close()
         shmm_rel_variance.close()
-        # shmm_blobs_mask.close()
-    # def return_single_event(self, i, blobs, regions, slices,):
-    #     print(i)
-    #     s           = slices[i]
-    #     blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
-    #     event       = Event(self, s, blob, i)
-    #     return event
-        # if s[0].stop - s[0].start < dmin:
-        #     self.excluded.append(Event(self, s, blob, i))
-        #             # blobs.mask[s][~blob.mask] = True
-        # elif not vmin <= (~blob.mask).sum() <= vmax:
-        #     self.excluded.append(Event(self, s, blob, i))
-        #             # blobs.mask[s][~blob.mask] = True
-        # else:
-        #     self.events.append(Event(self, s, blob, i))
+        shmm_event_array.close()
+        shmm_changed_array.close()
 
-    def add_single_event(self, dmin, vmin, vmax, blobs, regions, i, s):
+    def add_single_event(self, dmin, vmin, vmax, blobs, regions, i, s, relative_intensity, header):
         blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
         if s[0].stop - s[0].start < dmin:
             self.excluded.append(Event(self, s, blob, i))
