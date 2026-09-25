@@ -252,7 +252,6 @@ class Stack:
                 )
                            
             
-            self.parent_stack.get_relative_variance()
             del blobs
             del regions_
             del slices_
