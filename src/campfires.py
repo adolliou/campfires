@@ -154,12 +154,12 @@ class Stack:
         img, hdr = self.images[0].get()
 
         datacube        = np.zeros(
-            (img.shape[0], img.shape[1], len(image))
+            (img.shape[0], img.shape[1], len(self.images))
         )
         datacube_noise  = np.zeros(
-            (img.shape[0], img.shape[1], len(image))
+            (img.shape[0], img.shape[1], len(self.images))
         )        
-        for ii, image in enumerate(self):
+        for ii, image in enumerate(self.images):
             im, hdr                     = image.get()
             datacube[:, :, ii]          = copy.deepcopy(im)
             datacube_noise[:, :, ii]    = image.noise(im)
