@@ -230,8 +230,6 @@ class Stack:
                        saturation=True):
 
         blobs   = self.blobs3d_time(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
-        blobs_  = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
-        breakpoint()
         if vmax is None:
             vmax = blobs.size
 
