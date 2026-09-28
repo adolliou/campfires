@@ -152,14 +152,14 @@ class Event:
 
         return rgb_contour
 
-    def get_score(self):
+    def get_score(self,):
         """
         Computes the score, defined as the mean of the relative variance (variance normalized to the mean).
 
         :return: the score
         """
         mask = (~self.blob.mask).sum(axis=0) > 0
-        relative_variance = self.parent_stack.get_relative_variance()
+        relative_variance       = self.parent_stack.get_relative_variance()
         return np.mean(relative_variance[self.slc[1:]][mask])
 
     def stats(self):

@@ -23,8 +23,9 @@ from rectify import rectify
 from skimage.registration import phase_cross_correlation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import subprocess
+from tqdm import tqdm
 from event import Event
-
+from .geometry import Point, Line
 
 def parabolic(cc):
     cy, cx = np.unravel_index(np.argmax(cc, axis=None), cc.shape)
@@ -147,7 +148,7 @@ class Stack:
                 image.blobs2d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation))
         return ma.masked_array(blobs)
 
-    def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets',
+    def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
                        saturation=True):
 
         blobs = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
@@ -160,15 +161,47 @@ class Stack:
         self.events = []
 
         for i, s in enumerate(slices):
-            blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
+            blob            = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
+            ev              = Event(self, s, blob, i)
             if s[0].stop - s[0].start < dmin:
-                self.excluded.append(Event(self, s, blob, i))
+                self.excluded.append(ev)
                 # blobs.mask[s][~blob.mask] = True
             elif not vmin <= (~blob.mask).sum() <= vmax:
-                self.excluded.append(Event(self, s, blob, i))
+                self.excluded.append(ev)
                 # blobs.mask[s][~blob.mask] = True
+            elif ev.ellipse_parameters[0]/ev.ellipse_parameters[1] < elongation_min:
+                self.excluded.append(ev)
             else:
-                self.events.append(Event(self, s, blob, i))
+                self.events.append(ev)
+
+    def extract_events_fast(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
+                       saturation=True):
+
+        blobs = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
+        if vmax is None:
+            vmax = blobs.size
+
+        regions, nregions               = label(~blobs.mask)
+        slices                          = find_objects(regions)
+        selection_total                 = np.array(
+            [
+                (vmin <= (regions[slices[n]] == n + 1).sum()  <= vmax) & ((dmin < slices[n][0].stop - slices[n][0].start) ) 
+                for n in range(len(slices))
+                ]
+                , dtype=bool)
+        indexes                 = np.arange(len(slices), dtype="int")
+        indexes                 = indexes[selection_total]
+        slices_                 = tuple([slices[n] for n in range(len(slices)) if selection_total[n]])
+
+        self.events = []
+
+            
+        for ii, s in enumerate(tqdm(slices_, desc="Initialize events")):
+            i           = indexes[ii]
+            blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
+            ev          = Event(self, s, blob, i)
+            if ev.ellipse_parameters[0]/ev.ellipse_parameters[1] > elongation_min:
+                self.events.append(ev)
 
     def extract_background(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, detection_method='wavelets'):
 
@@ -422,16 +455,39 @@ class Sequence:
 
         self.masterstack = self.stacks[self.master]
 
-    def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None, saturation=True):
-        self.sigma = sigma
-        self.n_levels = n_levels
-        self.dmin = dmin
+    def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None,  elongation_min=0,
+                        saturation=True, fast_process=False): 
+        """Extract events through the wavelet "A trous" decomposition algorithm on given scales. 
+        (see for instance Starck, J. L., & Murtagh, F. 2002, Astronomical Image and Data Analysis (Springer-Verlag)
+        Args:
+            instruments (int, optional): index of the instrument where to perform the event extraction.
+            if None perform the extraction on the master stack (the first instrument given).
+            sigma (int, optional): Threshold value above the noise to select pixels on the wavelet coefficients. Defaults to 5.
+            n_levels (int, optional): Maximum wavelet coefficient where the extraction is performed . Defaults to 2.
+            dmin (int, optional): minimal duration of the events (in time steps). Defaults to 0.
+            vmin (int, optional): minimal peak surface for the events (in pixels). Defaults to 0.
+            vmax (_type_, optional): Maximal peak surface for the events. If None, no constraint on the maximal surface. Defaults to None.
+            elongation_min (int, optional): Minimal elongation for the events (major_radius/minor_radius). Defaults to 0.
+            saturation (bool, optional): _description_. Defaults to True.
+            fast_process (bool, optional): If True, then select a routine significantly faster, but that does not save 
+            events that do not follow the given constraints in self.excluded (e.g. self.excluded will stay empty). Defaults to False.
+        """        
+        self.sigma                  = sigma
+        self.n_levels               = n_levels
+        self.dmin                   = dmin
+        self.elongation_min         = elongation_min
         if instruments is None: instruments = [self.master]
         if type(instruments) is not list:
             instruments = [instruments]
         for instr in instruments:
-            self.stacks[instr].extract_events(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
-                                              detection_method=self.detection_method, saturation=saturation)
+            if fast_process:
+                self.stacks[instr].extract_events_fast(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
+                                                elongation_min=elongation_min,
+                                                detection_method=self.detection_method, saturation=saturation)
+            else:
+                self.stacks[instr].extract_events(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
+                                                elongation_min=elongation_min,
+                                                detection_method=self.detection_method, saturation=saturation)
 
     def extract_background(self, instruments=None, sigma=1, n_levels=3, dmin=0, vmin=0, vmax=None):
         if instruments is None:
@@ -497,7 +553,7 @@ class Sequence:
     def file_suffix(self):
         suffix = self.detection_method
         if self.detection_method == "wavelets":
-            suffix = suffix + f"_sigma{self.sigma}_levels{self.n_levels}_dmin{self.dmin}"
+            suffix = suffix + f"_sigma{self.sigma}_levels{self.n_levels}_dmin{self.dmin}_elongmin{self.elongation_min}"
         else:
             suffix += f"_dmin{self.dmin}"
         return suffix
