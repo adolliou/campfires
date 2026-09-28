@@ -228,7 +228,9 @@ class Stack:
     def extract_events_3d_fast(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
                        saturation=True):
 
-        blobs = self.blobs3d_time(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
+        blobs   = self.blobs3d_time(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
+        blobs_  = self.blobs3d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
+        breakpoint()
         if vmax is None:
             vmax = blobs.size
 
