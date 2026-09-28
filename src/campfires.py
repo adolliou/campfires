@@ -1056,7 +1056,7 @@ class Sequence:
         filename = 'events_heights_' + self.file_suffix() + '.eps'
         fig.savefig(filename)
 
-    def plot_statistics(self, instrument=None, full_events=False):
+    def plot_statistics(self, instrument=None, full_events=False, output_path = None,):
         if instrument is None:
             instrument = self.master
         if len(self.stacks) == 0:
@@ -1192,10 +1192,12 @@ class Sequence:
 
         filename = 'events_statistics_' + self.file_suffix() + '.png'
         fig.tight_layout()
+        if output_path is not None:
+            fig.savefig(os.path.join(output_path, filename), dpi=200)
+        else:
+            fig.savefig(filename, dpi=200)
 
-        fig.savefig(filename, dpi=200)
-
-    def plot_events(self, first_n=None, colorby=None):
+    def plot_events(self, first_n=None, colorby=None, output_path=None):
         plt.ioff()
         sort = np.argsort([ev.relative_variance for ev in self.masterstack.events])[::-1]
         # if first_n is not None:
@@ -1267,7 +1269,10 @@ class Sequence:
             bounds = ax.get_window_extent().bounds
             inches = (bounds[2] - bounds[0]) / fig.dpi
             dpi = f.parent_stack.get_min().shape[1] / inches
-            fig.savefig("locations_bar_" + self.file_suffix() + f"_{i}.png", dpi=dpi)
+            if output_path is not None:
+                fig.savefig(os.path.join(output_path, "locations_bar_" + self.file_suffix() + f"_{i}.png"), dpi=dpi)
+            else:
+                fig.savefig("locations_bar_" + self.file_suffix() + f"_{i}.png", dpi=dpi)
 
             # xc = [ev.xc for ev in self.masterstack.events]
             # yc = [ev.yc for ev in self.masterstack.events]
