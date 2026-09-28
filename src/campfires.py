@@ -151,7 +151,7 @@ class Stack:
     def blobs3d_time(self, n_levels=2, sigma=1, detection_method='wavelets', saturation=True):
         blobs = []
 
-        img, hdr = self[0].get()
+        img, hdr = self.images[0].get()
 
         datacube        = np.zeros(
             (img.shape[0], img.shape[1], len(image))
@@ -164,9 +164,9 @@ class Stack:
             datacube[:, :, ii]          = copy.deepcopy(im)
             datacube_noise[:, :, ii]    = image.noise(im)
 
-
+        breakpoint()
         data            = ma.masked_array(datacube, mask=True)
-        
+
         transform       = AtrousTransform(scaling_function_class=B3spline)        
         coeffs          = transform(img - np.median(img[img > 0]), level=n_levels)
         if saturation:
