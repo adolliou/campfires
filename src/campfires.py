@@ -229,7 +229,6 @@ class Stack:
                        saturation=True):
 
         blobs   = self.blobs3d_time(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
-        breakpoint()
 
         if vmax is None:
             vmax = blobs.size
@@ -598,10 +597,9 @@ class Sequence:
         if type(instruments) is not list:
             instruments = [instruments]
         for instr in instruments:
-            if not compute_excluded:
-                self.stacks[instr].extract_events_3d_fast(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
-                                                elongation_min=elongation_min,
-                                                detection_method=self.detection_method, saturation=saturation)
+            self.stacks[instr].extract_events_3d_fast(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
+                                            elongation_min=elongation_min,
+                                            detection_method=self.detection_method, saturation=saturation)
 
     def extract_background(self, instruments=None, sigma=1, n_levels=3, dmin=0, vmin=0, vmax=None):
         if instruments is None:
