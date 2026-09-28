@@ -160,9 +160,9 @@ class Stack:
             ( len(self.images), img.shape[0], img.shape[1],)
         )        
         for ii, image in enumerate(self.images):
-            im, hdr                     = image.get()
-            datacube[ii, :, :,]          = im - np.median(im[im > 0])
-            datacube_noise[ii, :, :]    = image.noise(im)
+            im, hdr                         = image.get()
+            datacube[ii, :, :,]             = im - np.median(im[im > 0])
+            datacube_noise[ii, :, :]        = image.noise(im)
         data            = ma.masked_array(datacube, mask=True)
 
         transform       = AtrousTransform(scaling_function_class=B3spline)        
@@ -196,7 +196,7 @@ class Stack:
         data.mask[:, -1, :, ]           = True
         data.mask[:, :, -1, ]           = True
         blobs                           = data
-
+        breakpoint()
         return blobs
 
     def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
