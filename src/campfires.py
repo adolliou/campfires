@@ -196,7 +196,6 @@ class Stack:
         data.mask[:, -1, :, ]           = True
         data.mask[:, :, -1, ]           = True
         blobs                           = data
-        breakpoint()
         return blobs
 
     def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
@@ -230,6 +229,8 @@ class Stack:
                        saturation=True):
 
         blobs   = self.blobs3d_time(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation)
+        breakpoint()
+
         if vmax is None:
             vmax = blobs.size
 
