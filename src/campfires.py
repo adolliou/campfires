@@ -196,6 +196,10 @@ class Stack:
         data.mask[-1, :, :]         = True
         data.mask[:, -1, :]         = True
         blobs                       = data
+        blobs                       = ma.masked_array(
+                                        datacube.reshape(2, 0, 1),
+                                        mask        = data.mask.reshape(2, 0, 1)  
+                                    )      
         return blobs
 
     def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
