@@ -456,7 +456,7 @@ class Sequence:
         self.masterstack = self.stacks[self.master]
 
     def extract_events(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None,  elongation_min=0,
-                        saturation=True, fast_process=False): 
+                        saturation=True, compute_excluded=True): 
         """Extract events through the wavelet "A trous" decomposition algorithm on given scales. 
         (see for instance Starck, J. L., & Murtagh, F. 2002, Astronomical Image and Data Analysis (Springer-Verlag)
         Args:
@@ -469,8 +469,8 @@ class Sequence:
             vmax (_type_, optional): Maximal peak surface for the events. If None, no constraint on the maximal surface. Defaults to None.
             elongation_min (int, optional): Minimal elongation for the events (major_radius/minor_radius). Defaults to 0.
             saturation (bool, optional): _description_. Defaults to True.
-            fast_process (bool, optional): If True, then select a routine significantly faster, but that does not save 
-            events that do not follow the given constraints in self.excluded (e.g. self.excluded will stay empty). Defaults to False.
+            compute_excluded (bool, optional): If True, compute events that do not follow the constraints in self.excluded.
+            If False, the algorhtm will be significantly faster
         """        
         self.sigma                  = sigma
         self.n_levels               = n_levels
@@ -480,7 +480,7 @@ class Sequence:
         if type(instruments) is not list:
             instruments = [instruments]
         for instr in instruments:
-            if fast_process:
+            if not compute_excluded:
                 self.stacks[instr].extract_events_fast(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
                                                 elongation_min=elongation_min,
                                                 detection_method=self.detection_method, saturation=saturation)
