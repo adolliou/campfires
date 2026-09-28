@@ -143,7 +143,7 @@ class Stack:
 
     def blobs3d(self, n_levels=2, sigma=1, detection_method='wavelets', saturation=True):
         blobs = []
-        for image in self:
+        for image in tqdm(self, desc="compute blob 2d"):
             blobs.append(
                 image.blobs2d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation))
         return ma.masked_array(blobs)
@@ -160,7 +160,7 @@ class Stack:
 
         self.events = []
 
-        for i, s in enumerate(slices):
+        for i, s in enumerate(tqdm(slices, "Initialize events (excluded mode)")):
             blob            = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
             ev              = Event(self, s, blob, i)
             if s[0].stop - s[0].start < dmin:
@@ -196,7 +196,7 @@ class Stack:
         self.events = []
 
             
-        for ii, s in enumerate(tqdm(slices_, desc="Initialize events")):
+        for ii, s in enumerate(tqdm(slices_, desc="Initialize events (fast mode)")):
             i           = indexes[ii]
             blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
             ev          = Event(self, s, blob, i)
