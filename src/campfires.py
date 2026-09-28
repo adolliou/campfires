@@ -154,15 +154,15 @@ class Stack:
         img, hdr = self.images[0].get()
 
         datacube        = np.zeros(
-            (img.shape[0], img.shape[1], len(self.images))
+            ( len(self.images), img.shape[0], img.shape[1],)
         )
         datacube_noise  = np.zeros(
-            (img.shape[0], img.shape[1], len(self.images))
+            ( len(self.images), img.shape[0], img.shape[1],)
         )        
         for ii, image in enumerate(self.images):
             im, hdr                     = image.get()
-            datacube[:, :, ii]          = im - np.median(im[im > 0])
-            datacube_noise[:, :, ii]    = image.noise(im)
+            datacube[ii, :, :,]          = im - np.median(im[im > 0])
+            datacube_noise[ii, :, :]    = image.noise(im)
         data            = ma.masked_array(datacube, mask=True)
 
         transform       = AtrousTransform(scaling_function_class=B3spline)        
@@ -181,9 +181,9 @@ class Stack:
                 data.mask[coeff >= (d * datacube_noise * se)] = False
         
                 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-                for jj in range(gd.shape[2]):
-                    bad = cv2.erode(np.uint8(gd[:, :, jj]), kernel, iterations=8)
-                    data.mask[bad == 0, jj] = True        
+                for jj in range(gd.shape[0]):
+                    bad = cv2.erode(np.uint8(gd[jj, :, :,]), kernel, iterations=8)
+                    data.mask[jj, bad == 0,] = True        
 
         else:
             dns = [np.abs(sigma)] * n_levels
@@ -191,15 +191,12 @@ class Stack:
                                     transform.scaling_function_class(2).sigma_e()[0:n_levels]):
                 data.mask[coeff >= (d * datacube_noise * se)] = False
             data.mask = ~data.mask
-        data.mask[0, :, :]          = True
-        data.mask[:, 0, :]          = True
-        data.mask[-1, :, :]         = True
-        data.mask[:, -1, :]         = True
-        blobs                       = data
-        blobs                       = ma.masked_array(
-                                        datacube.reshape(2, 0, 1),
-                                        mask        = data.mask.reshape(2, 0, 1)  
-                                    )      
+        data.mask[:, 0, :,  ]           = True
+        data.mask[:, :, 0,  ]           = True
+        data.mask[:, -1, :, ]           = True
+        data.mask[:, :, -1, ]           = True
+        blobs                           = data
+
         return blobs
 
     def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
