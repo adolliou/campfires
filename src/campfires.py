@@ -478,7 +478,7 @@ class Sequence:
         self.stacks = []
         self.masterstack = None
         self.detection_method = detection_method
-
+        self.time_3d            = False
         self.build_multiplets()
 
     def print_multiplets(self):
@@ -594,6 +594,7 @@ class Sequence:
         self.n_levels               = n_levels
         self.dmin                   = dmin
         self.elongation_min         = elongation_min
+        self.time_3d                = True
         if instruments is None: instruments = [self.master]
         if type(instruments) is not list:
             instruments = [instruments]
@@ -670,6 +671,9 @@ class Sequence:
             suffix = suffix + f"_sigma{self.sigma}_levels{self.n_levels}_dmin{self.dmin}_elongmin{self.elongation_min}"
         else:
             suffix += f"_dmin{self.dmin}"
+        if self.time_3d:
+            suffix += f"_3dtime"
+
         return suffix
 
     def events_tofits(self, first_n=None):
