@@ -25,7 +25,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import subprocess
 from tqdm import tqdm
 from event import Event
-from .geometry import Point, Line
+# from .geometry import Point, Line
 
 def parabolic(cc):
     cy, cx = np.unravel_index(np.argmax(cc, axis=None), cc.shape)
