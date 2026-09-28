@@ -538,7 +538,7 @@ class Sequence:
         #            names=('T','X','Y'))
         # table_center.write('center_of_intensity_v3.fits',format='fits')
 
-    def events_totable(self, first_n=None, output_filename='EvtCatalog'):
+    def events_totable(self, first_n=None, output_filename='EvtCatalog', output_path=None):
 
         sort = np.argsort([ev.relative_variance for ev in self.masterstack.events])[::-1]
         # if first_n is not None:
@@ -654,14 +654,18 @@ class Sequence:
              a_y_shift,
              a_major_axis, a_minor_axis, a_angle],
             names=output_names)
-
-        output_table.write(output_filename + '.fits', format='fits', overwrite=True)
-        output_table.write(output_filename + '.csv', format='csv', overwrite=True)
-
+        
         foreveryt_table = Table([a_height_fort, a_min_segment_fort, a_shift_fort],
-                                names=['height_fort', 'min_segment_fort', 'shift_fort'])
+                                    names=['height_fort', 'min_segment_fort', 'shift_fort'])
 
-        foreveryt_table.write(output_filename + '_correl_everyt.fits', format='fits', overwrite=True)
+        if output_path is not None:
+            output_table.write(os.path.join(output_path,output_filename + '.fits'), format='fits', overwrite=True)
+            output_table.write(os.path.join(output_path,output_filename + '.csv'), format='csv', overwrite=True)
+            foreveryt_table.write(os.path.join(output_path,output_filename + '_correl_everyt.fits'), format='fits', overwrite=True)
+        else:
+            output_table.write(output_filename + '.fits', format='fits', overwrite=True)
+            output_table.write(output_filename + '.csv', format='csv', overwrite=True)
+            foreveryt_table.write(output_filename + '_correl_everyt.fits', format='fits', overwrite=True)
 
     def plot_histograms(self):
         nbins = 50
