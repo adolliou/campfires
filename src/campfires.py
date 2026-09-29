@@ -196,9 +196,9 @@ class Stack:
                                             coeffs.scaling_function.sigma_e()[0:n_levels_time]):
                         data.mask[coeff >= (d * lc_sigma * se)] = False
                 
-                        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-                        bad = cv2.erode(np.uint8(gd), kernel, iterations=8)
-                        data.mask[bad == 0] = True        
+                        # kernel      = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                        # bad         = cv2.erode(np.uint8(gd), kernel, iterations=8)
+                        # data.mask[bad == 0] = True        
 
                 else:
                     dns = [np.abs(sigma)] * n_levels_time
