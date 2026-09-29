@@ -211,11 +211,11 @@ class Stack:
 
                 data_total.mask[:, ii, jj]      = data.mask
 
-        data.mask[:, 0, :,  ]                   = True
-        data.mask[:, :, 0,  ]                   = True
-        data.mask[:, -1, :, ]                   = True
-        data.mask[:, :, -1, ]                   = True
-        blobs_time                              = data_total
+        data_total.mask[:, 0, :,  ]                   = True
+        data_total.mask[:, :, 0,  ]                   = True
+        data_total.mask[:, -1, :, ]                   = True
+        data_total.mask[:, :, -1, ]                   = True
+        blobs_time                                      = data_total
 
         blobs_total                             = ma.masked_array(datacube, mask=np.logical_or(blobs_space.mask, blobs_time.mask))
         return blobs_total
