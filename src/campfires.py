@@ -1064,11 +1064,16 @@ class Sequence:
                     print(shift, cc.shape)
 
                 corr_lon = 0.0
-
-                lon1 = (xevt - hd1["CACRPIX1"] + 1) * hd1["CACDELT1"] + hd1["CACRVAL1"]
-                lat1 = (yevt - hd1["CACRPIX2"] + 1) * hd1["CACDELT2"] + hd1["CACRVAL2"]
-                lon2 = (xevt - shift[0] - hd2["CACRPIX1"] + 1) * hd2["CACDELT1"] + hd2["CACRVAL1"] + corr_lon
-                lat2 = (yevt - shift[1] - hd2["CACRPIX2"] + 1) * hd2["CACDELT2"] + hd2["CACRVAL2"]
+                if "CACRPIX1" in hd1:
+                    lon1 = (xevt - hd1["CACRPIX1"] + 1) * hd1["CACDELT1"] + hd1["CACRVAL1"]
+                    lat1 = (yevt - hd1["CACRPIX2"] + 1) * hd1["CACDELT2"] + hd1["CACRVAL2"]
+                    lon2 = (xevt - shift[0] - hd2["CACRPIX1"] + 1) * hd2["CACDELT1"] + hd2["CACRVAL1"] + corr_lon
+                    lat2 = (yevt - shift[1] - hd2["CACRPIX2"] + 1) * hd2["CACDELT2"] + hd2["CACRVAL2"]
+                elif 'CRLN-CAR' in hd1["CTYPE1"]:
+                    lon1 = (xevt - hd1["CRPIX1"] + 1) * hd1["CDELT1"] + hd1["CRVAL1"]
+                    lat1 = (yevt - hd1["CRPIX2"] + 1) * hd1["CDELT2"] + hd1["CRVAL2"]
+                    lon2 = (xevt - shift[0] - hd2["CRPIX1"] + 1) * hd2["CDELT1"] + hd2["CRVAL1"] + corr_lon
+                    lat2 = (yevt - shift[1] - hd2["CRPIX2"] + 1) * hd2["CDELT2"] + hd2["CRVAL2"]                    
 
                 o1 = Point(np.radians(hd1["CRLN_OBS"]), np.radians(hd1["CRLT_OBS"]), hd1["DSUN_OBS"] / hd1["MAPPINGR"],
                            rect=False)
@@ -1253,9 +1258,10 @@ class Sequence:
         dt = 5.0
         if 'CACDELT1' in hdr:
             pixlength = np.radians(hdr['CACDELT1']) * astropy.constants.R_sun.value / 1e6
-        else:
-            # pixlength = np.radians(hdr['CDELT1']/3600) * hdr['DSUN_OBS'] / 1e6
+        elif "CRLN-CAR" in hdr["CTYPE1"]:
             pixlength = np.radians(hdr['CDELT1']) * astropy.constants.R_sun.value / 1e6
+        else:
+            pixlength = np.radians(hdr['CDELT1']/3600) * hdr['DSUN_OBS'] / 1e6
 
         pixarea = pixlength ** 2
 
@@ -1425,20 +1431,20 @@ class Sequence:
                 lat2 = (f.parent_stack.get_min().shape[0] - 1 - h["CACRPIX2"] + 1) * h["CACDELT2"] + h["CACRVAL2"]
                 x_label = 'Carrington longitude (degrees)'
                 y_label = 'Carrington latitude (degrees)'
-            else:
+            elif "CRLN-CAR" in h["CTYPE1"]:
                 lon1 = (0 - h["CRPIX1"] + 1) * h["CDELT1"] + h["CRVAL1"]
                 lat1 = (0 - h["CRPIX2"] + 1) * h["CDELT2"] + h["CRVAL2"]
                 lon2 = (f.parent_stack.get_min().shape[1] - 1 - h["CRPIX1"] + 1) * h["CDELT1"] + h["CRVAL1"]
                 lat2 = (f.parent_stack.get_min().shape[0] - 1 - h["CRPIX2"] + 1) * h["CDELT2"] + h["CRVAL2"]
                 x_label = 'Carrington longitude (degrees)'
                 y_label = 'Carrington latitude (degrees)'
-
-                # lon1 = 0
-                # lon2 = h['NAXIS1']*h['CDELT1']
-                # lat1 = 0
-                # lat2 = h['NAXIS2']*h['CDELT2']
-                # x_label = 'Solar X (arcseconds)'
-                # y_label = 'Solar Y (arcseconds)'
+            else:
+                lon1 = 0
+                lon2 = h['NAXIS1']*h['CDELT1']
+                lat1 = 0
+                lat2 = h['NAXIS2']*h['CDELT2']
+                x_label = 'Solar X (arcseconds)'
+                y_label = 'Solar Y (arcseconds)'
             im = ax.imshow(rgb, origin='lower', interpolation="nearest", cmap=cmap, extent=[lon1, lon2, lat1, lat2])
 
             ax.set_xlabel(x_label)
