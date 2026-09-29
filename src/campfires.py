@@ -186,11 +186,11 @@ class Stack:
             data                        = ma.masked_array(lc, mask=True)
 
             coeffs                      = transform(lc - np.mean(lc[lc > 0]), level=n_levels_time)
-            # if saturation:
-            #     gd = np.logical_and(lc > 0, lc < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
-            # else:
-            #     gd = lc > 0        
-            # lc_sigma[~gd]               = 0  
+            if saturation:
+                gd = np.logical_and(lc > 0, lc < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
+            else:
+                gd = lc > 0        
+            lc_sigma[~gd]               = 0  
 
             if sigma > 0:
                 dns = [sigma,] * n_levels_time
