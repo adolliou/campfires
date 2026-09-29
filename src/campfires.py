@@ -199,7 +199,7 @@ class Stack:
                 
                         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
                         for pp in range(gd.shape[0]):
-                            bad = cv2.erode(np.uint8(gd[jj, :, :,]), kernel, iterations=8)
+                            bad = cv2.erode(np.uint8(gd[jj]), kernel, iterations=8)
                             data.mask[pp, bad == 0,] = True        
 
                 else:
