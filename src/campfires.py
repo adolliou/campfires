@@ -150,6 +150,77 @@ class Stack:
                 image.blobs2d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation))
         return ma.masked_array(blobs)
 
+
+
+
+    def blobs3d_time_v2(self, n_levels_space=2, n_levels_time = 10, sigma=1, detection_method='wavelets', saturation=True):
+        
+        blobs_space         = []
+        for image in tqdm(self, desc="compute blob 3d (space)"):
+            blobs_space.append(
+                image.blobs2d(n_levels=n_levels_space, sigma=sigma, detection_method=detection_method, saturation=saturation))
+        blobs_space         = ma.masked_array(blobs_space)
+        
+        blobs_time          = []
+        img, hdr = self.images[0].get()
+
+        datacube        = np.zeros(
+            ( len(self.images), img.shape[0], img.shape[1],)
+        )
+        datacube_noise  = np.zeros(
+            ( len(self.images), img.shape[0], img.shape[1],)
+        )        
+        for ii, image in enumerate(self.images):
+            im, hdr                         = image.get()
+            datacube[ii, :, :,]             = im - np.median(im[im > 0])
+            datacube_noise[ii, :, :]        = image.noise(im)
+
+        data_total                          = ma.masked_array(datacube, mask=True)
+
+        for ii in tqdm(range(datacube.shape[1]), desc="compute blob 3d (time)"):
+            for jj in range(datacube.shape[2]):
+                lc                          =  datacube[:, ii, jj,] 
+                lc_sigma                    =  datacube_noise[:, ii, jj,]
+                data                        = ma.masked_array(lc, mask=True)
+
+                transform                   = AtrousTransform(scaling_function_class=B3spline)   
+                coeffs                      = transform(lc, level=n_levels_time)
+                if saturation:
+                    gd = np.logical_and(lc > 0, lc < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
+                else:
+                    gd = lc > 0        
+                lc_sigma[~gd]               = 0  
+
+                if sigma > 0:
+                    dns = [sigma,] * n_levels_time
+                    for coeff, d, se in zip(coeffs.data[0:n_levels_time], dns,
+                                            coeffs.scaling_function.sigma_e()[0:n_levels_time]):
+                        data.mask[coeff >= (d * lc_sigma * se)] = False
+                
+                        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                        for pp in range(gd.shape[0]):
+                            bad = cv2.erode(np.uint8(gd[jj, :, :,]), kernel, iterations=8)
+                            data.mask[pp, bad == 0,] = True        
+
+                else:
+                    dns = [np.abs(sigma)] * n_levels_time
+                    for coeff, d, se in zip(coeffs[0:n_levels_time], dns,
+                                            transform.scaling_function_class(2).sigma_e()[0:n_levels_time]):
+                        data.mask[coeff >= (d * lc_sigma * se)] = False
+                    data.mask = ~data.mask
+
+                data_total.mask[:, ii, jj]      = data.mask
+
+        data.mask[:, 0, :,  ]                   = True
+        data.mask[:, :, 0,  ]                   = True
+        data.mask[:, -1, :, ]                   = True
+        data.mask[:, :, -1, ]                   = True
+        blobs_time                              = data_total
+
+        blobs_total                             = ma.masked_array(datacube, mask=np.logical_or(blobs_space.mask, blobs_time.mask))
+        return blobs_total
+
+
     def blobs3d_time(self, n_levels=2, sigma=1, detection_method='wavelets', saturation=True):
         blobs = []
 
@@ -173,7 +244,7 @@ class Stack:
         if saturation:
             gd = np.logical_and(data > 0, data < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
         else:
-            gd = img > 0        
+            gd = data > 0        
         datacube_noise[~gd]     = 0 
 
         if sigma > 0:
@@ -225,6 +296,41 @@ class Stack:
                 self.excluded.append(ev)
             else:
                 self.events.append(ev)
+
+
+
+    def extract_events_3d_fast_v2(self, n_levels_space=2, n_levels_time=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
+                       saturation=True):
+
+        blobs   = self.blobs3d_time_v2(n_levels_space=n_levels_space, n_levels_time = n_levels_time, 
+                                       sigma=sigma, detection_method=detection_method, saturation=saturation)
+
+        if vmax is None:
+            vmax = blobs.size
+
+        regions, nregions               = label(~blobs.mask)
+        slices                          = find_objects(regions)
+        selection_total                 = np.array(
+            [
+                (vmin <= (regions[slices[n]] == n + 1).sum()  <= vmax) & ((dmin < slices[n][0].stop - slices[n][0].start) ) 
+                for n in range(len(slices))
+                ]
+                , dtype=bool)
+        indexes                 = np.arange(len(slices), dtype="int")
+        indexes                 = indexes[selection_total]
+        slices_                 = tuple([slices[n] for n in range(len(slices)) if selection_total[n]])
+
+        self.events = []
+
+            
+        for ii, s in enumerate(tqdm(slices_, desc="Initialize events (fast mode)")):
+            i           = indexes[ii]
+            blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
+            ev          = Event(self, s, blob, i)
+            if ev.ellipse_parameters[0]/ev.ellipse_parameters[1] > elongation_min:
+                self.events.append(ev)
+
+
 
 
     def extract_events_3d_fast(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
@@ -465,20 +571,22 @@ class Sequence:
     def __init__(self, paths, fov=None, master=0, suffix='*.fits',
                  outpath=None, detection_method='wavelets'):
 
-        self.dmin = None
-        self.n_levels = None
-        self.sigma = None
+        self.dmin                   = None
+        self.n_levels               = None
+        self.n_levels_space         = None
+        self.n_levels_time          = None
+        self.sigma                  = None
         self.master = master
         self.paths = [paths] if type(paths) is str else paths
         if outpath is None: self.outpath = self.paths[self.master]
-        self.dcrval1 = None
-        self.dcrval2 = None
-        self.fov = fov
-        self.suffix = suffix
-        self.stacks = []
-        self.masterstack = None
-        self.detection_method = detection_method
-        self.time_3d            = False
+        self.dcrval1                = None
+        self.dcrval2                = None
+        self.fov                    = fov
+        self.suffix                 = suffix
+        self.stacks                 = []
+        self.masterstack            = None
+        self.detection_method       = detection_method
+        self.time_3d                = False
         self.build_multiplets()
 
     def print_multiplets(self):
@@ -572,6 +680,42 @@ class Sequence:
                 self.stacks[instr].extract_events(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
                                                 elongation_min=elongation_min,
                                                 detection_method=self.detection_method, saturation=saturation)
+
+
+    def extract_events_3d_v2(self, instruments=None, sigma=5, n_levels_space=2, n_levels_time=10, dmin=0, vmin=0, vmax=None,  elongation_min=0,
+                    saturation=True, compute_excluded=True): 
+        """Extract events through the wavelet "A trous" decomposition algorithm on given scales. 
+        (see for instance Starck, J. L., & Murtagh, F. 2002, Astronomical Image and Data Analysis (Springer-Verlag)
+        Args:
+            instruments (int, optional): index of the instrument where to perform the event extraction.
+            if None perform the extraction on the master stack (the first instrument given).
+            sigma (int, optional): Threshold value above the noise to select pixels on the wavelet coefficients. Defaults to 5.
+            n_levels (int, optional): Maximum wavelet coefficient where the extraction is performed . Defaults to 2.
+            dmin (int, optional): minimal duration of the events (in time steps). Defaults to 0.
+            vmin (int, optional): minimal peak surface for the events (in pixels). Defaults to 0.
+            vmax (_type_, optional): Maximal peak surface for the events. If None, no constraint on the maximal surface. Defaults to None.
+            elongation_min (int, optional): Minimal elongation for the events (major_radius/minor_radius). Defaults to 0.
+            saturation (bool, optional): _description_. Defaults to True.
+            compute_excluded (bool, optional): If True, compute events that do not follow the constraints in self.excluded.
+            If False, the algorhtm will be significantly faster
+        """        
+        self.sigma                  = sigma
+        self.n_levels               = None
+        self.n_levels_space         = n_levels_space
+        self.n_levels_time          = n_levels_time
+
+        self.dmin                   = dmin
+        self.elongation_min         = elongation_min
+        self.time_3d                = True
+        if instruments is None: instruments = [self.master]
+        if type(instruments) is not list:
+            instruments = [instruments]
+        for instr in instruments:
+            self.stacks[instr].extract_events_3d_fast_v2(sigma=sigma, n_levels_space=n_levels_space, n_levels_time = n_levels_time, 
+                                                         dmin=dmin, vmin=vmin, vmax=vmax,
+                                            elongation_min=elongation_min,
+                                            detection_method=self.detection_method, saturation=saturation)
+
 
     def extract_events_3d(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None,  elongation_min=0,
                     saturation=True, compute_excluded=True): 
@@ -667,7 +811,11 @@ class Sequence:
     def file_suffix(self):
         suffix = self.detection_method
         if self.detection_method == "wavelets":
-            suffix = suffix + f"_sigma{self.sigma}_levels{self.n_levels}_dmin{self.dmin}_elongmin{self.elongation_min}"
+            if self.n_levels is not None:
+                suffix = suffix + f"_sigma{self.sigma}_levels{self.n_levels}_dmin{self.dmin}_elongmin{self.elongation_min}"
+            else:
+                suffix = suffix + f"_sigma{self.sigma}_levelsspace{self.n_levels_space}_levelstime{self.n_levels_time}_dmin{self.dmin}_elongmin{self.elongation_min}"
+
         else:
             suffix += f"_dmin{self.dmin}"
         if self.time_3d:
