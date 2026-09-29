@@ -179,7 +179,7 @@ class Stack:
         indexes_cp                          = np.where(cp_exist)
         transform                           = AtrousTransform(scaling_function_class=B3spline)   
 
-        for ii, jj in tqdm(zip(indexes_cp[0], indexes_cp[1]), desc="compute blob 3d (time)"):
+        for ii, jj in tqdm(zip(indexes_cp[0], indexes_cp[1]), desc="compute blob 3d (time)", total=len(indexes_cp[0])):
             lc                          =  datacube[:, ii, jj,] 
             lc                          = lc - np.mean(lc[lc > 0])
             lc_sigma                    = datacube_noise[:, ii, jj,]
