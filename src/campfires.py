@@ -181,11 +181,11 @@ class Stack:
 
         for ii, jj in tqdm(zip(indexes_cp[0], indexes_cp[1]), desc="compute blob 3d (time)", total=len(indexes_cp[0])):
             lc                          =  datacube[:, ii, jj,] 
-            lc                          = lc - np.mean(lc[lc > 0])
+            # lc                          = lc - np.mean(lc[lc > 0])
             lc_sigma                    = datacube_noise[:, ii, jj,]
             data                        = ma.masked_array(lc, mask=True)
 
-            coeffs                      = transform(lc, level=n_levels_time)
+            coeffs                      = transform(lc - np.mean(lc[lc > 0]), level=n_levels_time)
             # if saturation:
             #     gd = np.logical_and(lc > 0, lc < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
             # else:
@@ -236,13 +236,13 @@ class Stack:
         )        
         for ii, image in enumerate(self.images):
             im, hdr                         = image.get()
-            datacube[ii, :, :,]             = im - np.median(im[im > 0])
+            datacube[ii, :, :,]             = im
             datacube_noise[ii, :, :]        = image.noise(im)
         data            = ma.masked_array(datacube, mask=True)
 
         transform       = AtrousTransform(scaling_function_class=B3spline)        
         # coeffs          = transform(data - np.median(data[data > 0]), level=n_levels)
-        coeffs          = transform(data, level=n_levels)
+        coeffs          = transform(data - np.mean(data[data>0]), level=n_levels)
         if saturation:
             gd = np.logical_and(data > 0, data < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
         else:
