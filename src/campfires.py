@@ -231,18 +231,22 @@ class Stack:
         datacube        = np.zeros(
             ( len(self.images), img.shape[0], img.shape[1],)
         )
+        datacube_sub    = np.zeros(
+            ( len(self.images), img.shape[0], img.shape[1],)
+        )        
         datacube_noise  = np.zeros(
             ( len(self.images), img.shape[0], img.shape[1],)
         )        
         for ii, image in enumerate(self.images):
             im, hdr                         = image.get()
+            datacube_sub[ii, :, :,]         = im - np.mean(im[im>0])
             datacube[ii, :, :,]             = im
             datacube_noise[ii, :, :]        = image.noise(im)
         data            = ma.masked_array(datacube, mask=True)
 
         transform       = AtrousTransform(scaling_function_class=B3spline)        
         # coeffs          = transform(data - np.median(data[data > 0]), level=n_levels)
-        coeffs          = transform(data - np.mean(data[data>0]), level=n_levels)
+        coeffs          = transform(datacube_sub, level=n_levels)
         if saturation:
             gd = np.logical_and(data > 0, data < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
         else:
