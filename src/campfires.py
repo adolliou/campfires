@@ -161,7 +161,6 @@ class Stack:
                 image.blobs2d(n_levels=n_levels_space, sigma=sigma, detection_method=detection_method, saturation=saturation))
         blobs_space         = ma.masked_array(blobs_space)
         
-        blobs_time          = []
         img, hdr = self.images[0].get()
 
         datacube        = np.zeros(
@@ -199,7 +198,7 @@ class Stack:
                 
                         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
                         bad = cv2.erode(np.uint8(gd), kernel, iterations=8)
-                        data.mask[bad == 0,] = True        
+                        data.mask[bad == 0] = True        
 
                 else:
                     dns = [np.abs(sigma)] * n_levels_time
