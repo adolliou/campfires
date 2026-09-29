@@ -175,8 +175,8 @@ class Stack:
             datacube_noise[ii, :, :]        = image.noise(im)
 
         data_total                          = ma.masked_array(datacube, mask=True)
-        cp_exist                            = np.array((~blobs_space.mask[:, ii, :]).sum(), dtype=bool)
-        index                               = np.where(cp_exist)
+        cp_exist                            = np.array((~blobs_space.mask).sum(), dtype=bool)
+        indexes_cp                          = np.where(cp_exist)
         breakpoint()
 
 
