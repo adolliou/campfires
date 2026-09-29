@@ -177,6 +177,7 @@ class Stack:
         data_total                          = ma.masked_array(datacube, mask=True)
         cp_exist                            = np.array((~blobs_space.mask).sum(axis=0), dtype=bool)
         indexes_cp                          = np.where(cp_exist)
+        transform                           = AtrousTransform(scaling_function_class=B3spline)   
 
         for ii, jj in tqdm(zip(indexes_cp[0], indexes_cp[1]), desc="compute blob 3d (time)"):
             lc                          =  datacube[:, ii, jj,] 
@@ -184,7 +185,6 @@ class Stack:
             lc_sigma                    = datacube_noise[:, ii, jj,]
             data                        = ma.masked_array(lc, mask=True)
 
-            transform                   = AtrousTransform(scaling_function_class=B3spline)   
             coeffs                      = transform(lc, level=n_levels_time)
             if saturation:
                 gd = np.logical_and(lc > 0, lc < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
