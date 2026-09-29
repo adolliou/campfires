@@ -175,10 +175,10 @@ class Stack:
             datacube_noise[ii, :, :]        = image.noise(im)
 
         data_total                          = ma.masked_array(datacube, mask=True)
-
+        
         for ii in tqdm(range(datacube.shape[1]), desc="compute blob 3d (time)"):
             for jj in range(datacube.shape[2]):
-                if (~blobs_space.mask[ii, jj, :]).sum() > 0:
+                if (~blobs_space.mask[:, ii, jj]).sum() > 0:
                     lc                          =  datacube[:, ii, jj,] 
                     lc                          = lc - np.mean(lc[lc > 0])
                     lc_sigma                    = datacube_noise[:, ii, jj,]
