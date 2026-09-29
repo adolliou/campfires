@@ -1255,7 +1255,7 @@ class Sequence:
             pixlength = np.radians(hdr['CACDELT1']) * astropy.constants.R_sun.value / 1e6
         else:
             # pixlength = np.radians(hdr['CDELT1']/3600) * hdr['DSUN_OBS'] / 1e6
-            pixlength = np.radians(hdr['DELT1']) * astropy.constants.R_sun.value / 1e6
+            pixlength = np.radians(hdr['CDELT1']) * astropy.constants.R_sun.value / 1e6
 
         pixarea = pixlength ** 2
 
