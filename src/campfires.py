@@ -173,13 +173,43 @@ class Stack:
             im, hdr                         = image.get()
             datacube[ii, :, :,]             = im
             datacube_noise[ii, :, :]        = image.noise(im)
-
+        
         data_total                          = ma.masked_array(datacube, mask=True)
         cp_exist                            = np.array((~blobs_space.mask).sum(axis=0), dtype=bool)
         indexes_cp                          = np.where(cp_exist)
-        breakpoint()
 
+        for ii, jj in zip(indexes_cp[0], indexes_cp[1]):
+            lc                          =  datacube[:, ii, jj,] 
+            lc                          = lc - np.mean(lc[lc > 0])
+            lc_sigma                    = datacube_noise[:, ii, jj,]
+            data                        = ma.masked_array(lc, mask=True)
 
+            transform                   = AtrousTransform(scaling_function_class=B3spline)   
+            coeffs                      = transform(lc, level=n_levels_time)
+            if saturation:
+                gd = np.logical_and(lc > 0, lc < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
+            else:
+                gd = lc > 0        
+            lc_sigma[~gd]               = 0  
+
+            if sigma > 0:
+                dns = [sigma,] * n_levels_time
+                for coeff, d, se in zip(coeffs.data[0:n_levels_time], dns,
+                                        coeffs.scaling_function.sigma_e()[0:n_levels_time]):
+                    data.mask[coeff >= (d * lc_sigma * se)] = False
+            
+                    # kernel      = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                    # bad         = cv2.erode(np.uint8(gd), kernel, iterations=8)
+                    # data.mask[bad == 0] = True        
+
+            else:
+                dns = [np.abs(sigma)] * n_levels_time
+                for coeff, d, se in zip(coeffs[0:n_levels_time], dns,
+                                        transform.scaling_function_class(2).sigma_e()[0:n_levels_time]):
+                    data.mask[coeff >= (d * lc_sigma * se)] = False
+                data.mask = ~data.mask
+
+            data_total.mask[:, ii, jj]      = data.mask
         
         for ii in tqdm(range(datacube.shape[1]), desc="compute blob 3d (time)"):
             if (~blobs_space.mask[:, ii, :]).sum() > 0:            
