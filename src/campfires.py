@@ -684,7 +684,7 @@ class Sequence:
         #     if first_n > sort.shape[0]:
         #         first_n = sort.shape[0]
         #     sort = sort[0:first_n]
-        for idx, image in enumerate(self.masterstack.images):
+        for idx, image in enumerate(tqdm(self.masterstack.images, desc="saving FITS files")):
             fi_out = image.file[:-5] + '_detected_regions_' + \
                      self.file_suffix() + ".fits.gz"
             with fits.open(image.file) as hdul:
