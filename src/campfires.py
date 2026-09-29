@@ -198,9 +198,8 @@ class Stack:
                         data.mask[coeff >= (d * lc_sigma * se)] = False
                 
                         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-                        for pp in range(gd.shape[0]):
-                            bad = cv2.erode(np.uint8(gd[jj]), kernel, iterations=8)
-                            data.mask[pp, bad == 0,] = True        
+                        bad = cv2.erode(np.uint8(gd), kernel, iterations=8)
+                        data.mask[bad == 0,] = True        
 
                 else:
                     dns = [np.abs(sigma)] * n_levels_time
