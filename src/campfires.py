@@ -171,7 +171,7 @@ class Stack:
         )        
         for ii, image in enumerate(self.images):
             im, hdr                         = image.get()
-            datacube[ii, :, :,]             = im - np.median(im[im > 0])
+            datacube[ii, :, :,]             = im
             datacube_noise[ii, :, :]        = image.noise(im)
 
         data_total                          = ma.masked_array(datacube, mask=True)
@@ -179,7 +179,8 @@ class Stack:
         for ii in tqdm(range(datacube.shape[1]), desc="compute blob 3d (time)"):
             for jj in range(datacube.shape[2]):
                 lc                          =  datacube[:, ii, jj,] 
-                lc_sigma                    =  datacube_noise[:, ii, jj,]
+                lc                          = lc - np.mean(lc[lc > 0])
+                lc_sigma                    = datacube_noise[:, ii, jj,]
                 data                        = ma.masked_array(lc, mask=True)
 
                 transform                   = AtrousTransform(scaling_function_class=B3spline)   
