@@ -26,6 +26,8 @@ import subprocess
 from tqdm import tqdm
 from event import Event
 # from .geometry import Point, Line
+import matplotlib
+matplotlib.use('Agg')
 
 def parabolic(cc):
     cy, cx = np.unravel_index(np.argmax(cc, axis=None), cc.shape)
@@ -1242,6 +1244,7 @@ class Sequence:
         else:
             events = [ev for ev in self.stacks[instrument].events if
                       ev.slc[0].start > 0 and ev.slc[0].stop < len(self.stacks[instrument])]
+        plt.ioff()
 
         print(len(events))
 
@@ -1251,7 +1254,9 @@ class Sequence:
         if 'CACDELT1' in hdr:
             pixlength = np.radians(hdr['CACDELT1']) * astropy.constants.R_sun.value / 1e6
         else:
-            pixlength = np.radians(hdr['CDELT1']/3600) * hdr['DSUN_OBS'] / 1e6
+            # pixlength = np.radians(hdr['CDELT1']/3600) * hdr['DSUN_OBS'] / 1e6
+            pixlength = np.radians(hdr['DELT1']) * astropy.constants.R_sun.value / 1e6
+
         pixarea = pixlength ** 2
 
         nbins = 50
@@ -1421,12 +1426,19 @@ class Sequence:
                 x_label = 'Carrington longitude (degrees)'
                 y_label = 'Carrington latitude (degrees)'
             else:
-                lon1 = 0
-                lon2 = h['NAXIS1']*h['CDELT1']
-                lat1 = 0
-                lat2 = h['NAXIS2']*h['CDELT2']
-                x_label = 'Solar X (arcseconds)'
-                y_label = 'Solar Y (arcseconds)'
+                lon1 = (0 - h["CRPIX1"] + 1) * h["CDELT1"] + h["CRVAL1"]
+                lat1 = (0 - h["CRPIX2"] + 1) * h["CDELT2"] + h["CRVAL2"]
+                lon2 = (f.parent_stack.get_min().shape[1] - 1 - h["CRPIX1"] + 1) * h["CDELT1"] + h["CRVAL1"]
+                lat2 = (f.parent_stack.get_min().shape[0] - 1 - h["CRPIX2"] + 1) * h["CDELT2"] + h["CRVAL2"]
+                x_label = 'Carrington longitude (degrees)'
+                y_label = 'Carrington latitude (degrees)'
+
+                # lon1 = 0
+                # lon2 = h['NAXIS1']*h['CDELT1']
+                # lat1 = 0
+                # lat2 = h['NAXIS2']*h['CDELT2']
+                # x_label = 'Solar X (arcseconds)'
+                # y_label = 'Solar Y (arcseconds)'
             im = ax.imshow(rgb, origin='lower', interpolation="nearest", cmap=cmap, extent=[lon1, lon2, lat1, lat2])
 
             ax.set_xlabel(x_label)
