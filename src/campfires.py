@@ -178,7 +178,7 @@ class Stack:
         cp_exist                            = np.array((~blobs_space.mask).sum(axis=0), dtype=bool)
         indexes_cp                          = np.where(cp_exist)
 
-        for ii, jj in zip(indexes_cp[0], indexes_cp[1]):
+        for ii, jj in tqdm(zip(indexes_cp[0], indexes_cp[1]), desc="compute blob 3d (time)"):
             lc                          =  datacube[:, ii, jj,] 
             lc                          = lc - np.mean(lc[lc > 0])
             lc_sigma                    = datacube_noise[:, ii, jj,]
