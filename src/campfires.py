@@ -163,7 +163,7 @@ class Stack:
         for image in tqdm(self, desc="compute blob 3d (space)"):
             blobs_space.append(
                 image.blobs2d(n_levels=n_levels_space, sigma=sigma, detection_method=detection_method, saturation=saturation))
-        blobs_space_mask            = copy.deepcopy(blobs_space.mask)
+        blobs_space_mask            = copy.deepcopy(ma.masked_array(blobs_space).mask)
         del blobs_space
 
         datacube        = np.zeros(
