@@ -185,7 +185,7 @@ class Stack:
     def blobs1d_time(self, datacube, datacube_noise, n_levels_time, sigma, saturation, blobs_space_mask):
 
         
-        blobs_time_mask                     = np.ones(datacube.shape, mask=True)
+        blobs_time_mask                     = np.ones(datacube.shape, dtype=bool)
         cp_exist                            = np.array((~blobs_space_mask).sum(axis=0), dtype=bool)
         indexes_cp                          = np.where(cp_exist)
         transform                           = AtrousTransform(scaling_function_class=B3spline)   
