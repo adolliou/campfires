@@ -154,14 +154,17 @@ class Stack:
 
 
     def blobs3d_time_v2(self, n_levels_space=2, n_levels_time = 10, sigma=1, detection_method='wavelets', saturation=True):
-        
+
+        img, hdr = self.images[0].get()
+
+
+
         blobs_space         = []
         for image in tqdm(self, desc="compute blob 3d (space)"):
             blobs_space.append(
                 image.blobs2d(n_levels=n_levels_space, sigma=sigma, detection_method=detection_method, saturation=saturation))
-        blobs_space         = ma.masked_array(blobs_space)
-        
-        img, hdr = self.images[0].get()
+        blobs_space_mask            = copy.deepcopy(blobs_space.mask)
+        del blobs_space
 
         datacube        = np.zeros(
             ( len(self.images), img.shape[0], img.shape[1],)
@@ -173,14 +176,22 @@ class Stack:
             im, hdr                         = image.get()
             datacube[ii, :, :,]             = im
             datacube_noise[ii, :, :]        = image.noise(im)
+
+        blobs_time_mask                         = self.blobs1d_time(datacube, datacube_noise, n_levels_time, sigma, saturation, blobs_space_mask)
+
+        blobs_total                             = ma.masked_array(datacube, mask=np.logical_or(blobs_space_mask, blobs_time_mask))
+        return blobs_total
+
+    def blobs1d_time(self, datacube, datacube_noise, n_levels_time, sigma, saturation, blobs_space_mask):
+
         
-        data_total                          = ma.masked_array(datacube, mask=True)
-        cp_exist                            = np.array((~blobs_space.mask).sum(axis=0), dtype=bool)
+        blobs_time_mask                     = ma.ones(datacube.shape, mask=True)
+        cp_exist                            = np.array((~blobs_space_mask).sum(axis=0), dtype=bool)
         indexes_cp                          = np.where(cp_exist)
         transform                           = AtrousTransform(scaling_function_class=B3spline)   
 
         for ii, jj in tqdm(zip(indexes_cp[0], indexes_cp[1]), desc="compute blob 3d (time)", total=len(indexes_cp[0])):
-            lc                          =  datacube[:, ii, jj,] 
+            lc                          = datacube[:, ii, jj,] 
             # lc                          = lc - np.mean(lc[lc > 0])
             lc_sigma                    = datacube_noise[:, ii, jj,]
             data                        = ma.masked_array(lc, mask=True)
@@ -203,79 +214,74 @@ class Stack:
                     # data.mask[bad == 0] = True        
 
             else:
-                dns = [np.abs(sigma)] * n_levels_time
-                for coeff, d, se in zip(coeffs[0:n_levels_time], dns,
-                                        transform.scaling_function_class(2).sigma_e()[0:n_levels_time]):
-                    data.mask[coeff >= (d * lc_sigma * se)] = False
-                data.mask = ~data.mask
+                raise NotImplementedError
 
-            data_total.mask[:, ii, jj]      = data.mask
+            blobs_time_mask[:, ii, jj]      = data.mask
         
 
 
-        data_total.mask[:, 0, :,  ]                   = True
-        data_total.mask[:, :, 0,  ]                   = True
-        data_total.mask[:, -1, :, ]                   = True
-        data_total.mask[:, :, -1, ]                   = True
-        blobs_time                                    = data_total
-
-        blobs_total                             = ma.masked_array(datacube, mask=np.logical_or(blobs_space.mask, blobs_time.mask))
-        return blobs_total
+        blobs_time_mask[:, 0, :,  ]                   = True
+        blobs_time_mask[:, :, 0,  ]                   = True
+        blobs_time_mask[:, -1, :, ]                   = True
+        blobs_time_mask[:, :, -1, ]                   = True
+        return blobs_time_mask
 
 
-    def blobs3d_time(self, n_levels=2, sigma=1, detection_method='wavelets', saturation=True):
-        blobs = []
+    # def blobs3d_time(self, n_levels=2, sigma=1, detection_method='wavelets', saturation=True):
+    #     blobs = []
 
-        img, hdr = self.images[0].get()
+    #     img, hdr = self.images[0].get()
 
-        datacube        = np.zeros(
-            ( len(self.images), img.shape[0], img.shape[1],)
-        )
-        datacube_sub    = np.zeros(
-            ( len(self.images), img.shape[0], img.shape[1],)
-        )        
-        datacube_noise  = np.zeros(
-            ( len(self.images), img.shape[0], img.shape[1],)
-        )        
-        for ii, image in enumerate(self.images):
-            im, hdr                         = image.get()
-            datacube_sub[ii, :, :,]         = im - np.mean(im[im>0])
-            datacube[ii, :, :,]             = im
-            datacube_noise[ii, :, :]        = image.noise(im)
-        data            = ma.masked_array(datacube, mask=True)
+    #     datacube        = np.zeros(
+    #         ( len(self.images), img.shape[0], img.shape[1],)
+    #     )
+    #     datacube_sub    = np.zeros(
+    #         ( len(self.images), img.shape[0], img.shape[1],)
+    #     )        
+    #     datacube_noise  = np.zeros(
+    #         ( len(self.images), img.shape[0], img.shape[1],)
+    #     )        
+    #     for ii, image in enumerate(self.images):
+    #         im, hdr                         = image.get()
+    #         datacube_sub[ii, :, :,]         = im - np.mean(im[im>0])
+    #         datacube[ii, :, :,]             = im
+    #         datacube_noise[ii, :, :]        = image.noise(im)
+    #     data            = ma.masked_array(datacube, mask=True)
 
-        transform       = AtrousTransform(scaling_function_class=B3spline)        
-        # coeffs          = transform(data - np.median(data[data > 0]), level=n_levels)
-        coeffs          = transform(datacube_sub, level=n_levels)
-        if saturation:
-            gd = np.logical_and(data > 0, data < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
-        else:
-            gd = data > 0        
-        datacube_noise[~gd]     = 0 
+    #     transform       = AtrousTransform(scaling_function_class=B3spline)        
+    #     # coeffs          = transform(data - np.median(data[data > 0]), level=n_levels)
+    #     coeffs          = transform(datacube_sub, level=n_levels)
+    #     if saturation:
+    #         gd = np.logical_and(data > 0, data < 3660)  # 3657 photons = 25600(RECHIGH)/7.0(gain)
+    #     else:
+    #         gd = data > 0        
+    #     datacube_noise[~gd]     = 0 
 
-        if sigma > 0:
-            dns = [sigma,] * n_levels
-            for coeff, d, se in zip(coeffs.data[0:n_levels], dns,
-                                    coeffs.scaling_function.sigma_e()[0:n_levels]):
-                data.mask[coeff >= (d * datacube_noise * se)] = False
+    #     if sigma > 0:
+    #         dns = [sigma,] * n_levels
+    #         for coeff, d, se in zip(coeffs.data[0:n_levels], dns,
+    #                                 coeffs.scaling_function.sigma_e()[0:n_levels]):
+    #             data.mask[coeff >= (d * datacube_noise * se)] = False
         
-                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-                for jj in range(gd.shape[0]):
-                    bad = cv2.erode(np.uint8(gd[jj, :, :,]), kernel, iterations=8)
-                    data.mask[jj, bad == 0,] = True        
+    #             kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    #             for jj in range(gd.shape[0]):
+    #                 bad = cv2.erode(np.uint8(gd[jj, :, :,]), kernel, iterations=8)
+    #                 data.mask[jj, bad == 0,] = True        
 
-        else:
-            dns = [np.abs(sigma)] * n_levels
-            for coeff, d, se in zip(coeffs[0:n_levels], dns,
-                                    transform.scaling_function_class(2).sigma_e()[0:n_levels]):
-                data.mask[coeff >= (d * datacube_noise * se)] = False
-            data.mask = ~data.mask
-        data.mask[:, 0, :,  ]           = True
-        data.mask[:, :, 0,  ]           = True
-        data.mask[:, -1, :, ]           = True
-        data.mask[:, :, -1, ]           = True
-        blobs                           = data
-        return blobs
+    #     else:
+    #         dns = [np.abs(sigma)] * n_levels
+    #         for coeff, d, se in zip(coeffs[0:n_levels], dns,
+    #                                 transform.scaling_function_class(2).sigma_e()[0:n_levels]):
+    #             data.mask[coeff >= (d * datacube_noise * se)] = False
+    #         data.mask = ~data.mask
+    #     data.mask[:, 0, :,  ]           = True
+    #     data.mask[:, :, 0,  ]           = True
+    #     data.mask[:, -1, :, ]           = True
+    #     data.mask[:, :, -1, ]           = True
+    #     blobs                           = data
+    #     return blobs
+
+
 
     def extract_events(self, n_levels=2, sigma=1, dmin=0, vmin=0, vmax=None, elongation_min=None, detection_method='wavelets',
                        saturation=True):
