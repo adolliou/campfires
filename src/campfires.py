@@ -729,35 +729,7 @@ class Sequence:
                                             detection_method=self.detection_method, saturation=saturation)
 
 
-    def extract_events_3d(self, instruments=None, sigma=5, n_levels=2, dmin=0, vmin=0, vmax=None,  elongation_min=0,
-                    saturation=True, compute_excluded=True): 
-        """Extract events through the wavelet "A trous" decomposition algorithm on given scales. 
-        (see for instance Starck, J. L., & Murtagh, F. 2002, Astronomical Image and Data Analysis (Springer-Verlag)
-        Args:
-            instruments (int, optional): index of the instrument where to perform the event extraction.
-            if None perform the extraction on the master stack (the first instrument given).
-            sigma (int, optional): Threshold value above the noise to select pixels on the wavelet coefficients. Defaults to 5.
-            n_levels (int, optional): Maximum wavelet coefficient where the extraction is performed . Defaults to 2.
-            dmin (int, optional): minimal duration of the events (in time steps). Defaults to 0.
-            vmin (int, optional): minimal peak surface for the events (in pixels). Defaults to 0.
-            vmax (_type_, optional): Maximal peak surface for the events. If None, no constraint on the maximal surface. Defaults to None.
-            elongation_min (int, optional): Minimal elongation for the events (major_radius/minor_radius). Defaults to 0.
-            saturation (bool, optional): _description_. Defaults to True.
-            compute_excluded (bool, optional): If True, compute events that do not follow the constraints in self.excluded.
-            If False, the algorhtm will be significantly faster
-        """        
-        self.sigma                  = sigma
-        self.n_levels               = n_levels
-        self.dmin                   = dmin
-        self.elongation_min         = elongation_min
-        self.time_3d                = True
-        if instruments is None: instruments = [self.master]
-        if type(instruments) is not list:
-            instruments = [instruments]
-        for instr in instruments:
-            self.stacks[instr].extract_events_3d_fast(sigma=sigma, n_levels=n_levels, dmin=dmin, vmin=vmin, vmax=vmax,
-                                            elongation_min=elongation_min,
-                                            detection_method=self.detection_method, saturation=saturation)
+
 
     def extract_background(self, instruments=None, sigma=1, n_levels=3, dmin=0, vmin=0, vmax=None):
         if instruments is None:
@@ -1539,9 +1511,9 @@ class Sequence:
         filename = 'events_statistics_' + self.file_suffix() + '.png'
         fig.tight_layout()
         if output_path is not None:
-            fig.savefig(os.path.join(output_path, filename), dpi=200)
+            fig.savefig(os.path.join(output_path, filename), dpi=600)
         else:
-            fig.savefig(filename, dpi=200)
+            fig.savefig(filename, dpi=600)
 
     def plot_events(self, first_n=None, colorby=None, output_path=None):
         plt.ioff()
