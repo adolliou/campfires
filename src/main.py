@@ -44,14 +44,14 @@ print(data_paths)
 
 
 def main_antoine():
-    t0              = time.clock()
+    t0              = time.time()
     data_paths      = "/scratch/dolliou/test_campfire/data/2023_10_06_org_carmaps/"
     print("starting Sequence")
     seq = Sequence(data_paths, fov = None)
     print("starting extract_events")
     seq.extract_events(sigma = 3, dmin = 2, vmin = 2, compute_excluded=True)
 
-    t              = time.clock() - t0
+    t              = time.time() - t0
     print(f"elapsed time {t}")
 
     print("starting events_totable")
