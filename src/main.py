@@ -26,7 +26,7 @@ import subprocess
 from event import Event
 from campfires import Image, Stack, Sequence
 from process_aia import process_aia
-from make_carrington_stack_campfires import make_carrington_stack_campfires
+# from make_carrington_stack_campfires import make_carrington_stack_campfires
 
 include_AIA = False # set to True if AIA should be included and to False if only HRIEUV is needed
 
@@ -41,6 +41,24 @@ else:
     data_paths = hrieuv_data_path
 print(data_paths)
 
+
+def main_antoine():
+    data_paths      = "C:/Users/dolliou/Desktop/data_nancy_QS/2023_10_06/org_carmaps/"
+    print("starting Sequence")
+    seq = Sequence(data_paths, fov = None)
+    print("starting extract_events")
+    seq.extract_events(sigma = 6, dmin = 0, vmin = 1)
+    print("starting events_totable")
+    seq.events_totable(output_filename = 'EvtCatalog_20231006_noexclude')
+    print("starting plot_statistics")
+    seq.plot_statistics()
+    print("starting plot_events")
+    seq.plot_events()
+    print("starting events_tofits")
+    seq.events_tofits()
+    print("starting make_movies")
+    seq.make_movies(first_n = 10)
+    print("End.label")
 
 def main(data_paths):
     
@@ -102,4 +120,5 @@ def main(data_paths):
 
 
 if __name__ == '__main__':
-    main(data_paths)
+    # main(data_paths)
+    main_antoine()

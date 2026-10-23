@@ -9,7 +9,7 @@ from astropy.io.fits import CompImageHDU
 import sunpy.map
 from sunpy.net import Fido, attrs as a
 from aiapy.calibrate import register, update_pointing
-from aiapy.calibrate.util import get_pointing_table
+from aiapy.calibrate.utils import get_pointing_table
 from pathlib import Path
 import os
 
