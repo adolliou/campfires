@@ -52,7 +52,7 @@ def main_antoine():
     seq.extract_events(sigma = 3, dmin = 2, vmin = 2, compute_excluded=True)
 
     t              = time.clock() - t0
-    print(f"elapsed time {t0}")
+    print(f"elapsed time {t}")
 
     print("starting events_totable")
     seq.events_totable(output_filename = 'EvtCatalog_20231006_excludefalse')
