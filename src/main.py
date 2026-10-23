@@ -25,7 +25,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import subprocess
 from event import Event
 from campfires import Image, Stack, Sequence
-from process_aia import process_aia
+# from process_aia import process_aia
 # from make_carrington_stack_campfires import make_carrington_stack_campfires
 
 include_AIA = False # set to True if AIA should be included and to False if only HRIEUV is needed
