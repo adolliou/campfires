@@ -43,11 +43,11 @@ print(data_paths)
 
 
 def main_antoine():
-    data_paths      = "C:/Users/dolliou/Desktop/data_nancy_QS/2023_10_06/org_carmaps/"
+    data_paths      = "/scratch/dolliou/test_campfire/data/2023_10_06_org_carmaps/"
     print("starting Sequence")
     seq = Sequence(data_paths, fov = None)
     print("starting extract_events")
-    seq.extract_events(sigma = 6, dmin = 0, vmin = 1, compute_excluded=False)
+    seq.extract_events(sigma = 3, dmin = 2, vmin = 2, compute_excluded=False)
     print("starting events_totable")
     seq.events_totable(output_filename = 'EvtCatalog_20231006_excludefalse')
     print("starting plot_statistics")
