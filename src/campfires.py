@@ -24,7 +24,6 @@ from skimage.registration import phase_cross_correlation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import subprocess
 from event import Event
-from tqdm import tqdm
 
 
 def parabolic(cc):
@@ -143,7 +142,7 @@ class Stack:
 
     def blobs3d(self, n_levels=2, sigma=1, detection_method='wavelets', saturation=True):
         blobs = []
-        for ii, image in enumerate(tqdm(self, desc="Perform wavelet decomposition (space)")):
+        for ii, image in enumerate(self):
             blobs.append(
                 image.blobs2d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation))
         return ma.masked_array(blobs)
@@ -160,7 +159,7 @@ class Stack:
 
         self.events = []
 
-        for i, s in enumerate(tqdm(slices, desc = "Initialize events (with exluded ones)")):
+        for i, s in enumerate(slices):
             blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
             if s[0].stop - s[0].start < dmin:
                 self.excluded.append(Event(self, s, blob, i))
@@ -194,7 +193,7 @@ class Stack:
 
         self.events = []
 
-        for ii, s in enumerate(tqdm(slices_, desc = "Initialize events (without exluded ones)")):
+        for ii, s in enumerate(slices_):
             i           = indexes[ii]
             blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
             ev          = Event(self, s, blob, i)
