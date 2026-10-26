@@ -142,7 +142,7 @@ class Stack:
 
     def blobs3d(self, n_levels=2, sigma=1, detection_method='wavelets', saturation=True):
         blobs = []
-        for ii, image in enumerate(self):
+        for image in self:
             blobs.append(
                 image.blobs2d(n_levels=n_levels, sigma=sigma, detection_method=detection_method, saturation=saturation))
         return ma.masked_array(blobs)
@@ -468,7 +468,7 @@ class Sequence:
             vmax (_type_, optional): Maximal peak surface for the events. If None, no constraint on the maximal surface. Defaults to None.
             saturation (bool, optional): remove pixels considered saturated. Defaults to True.
             compute_excluded (bool, optional): If True, compute events that do not follow the constraints in self.excluded.
-            If False, the algorhtm will be significantly faster
+            If False, the algorithm will be significantly faster
         """                
         self.sigma = sigma
         self.n_levels = n_levels

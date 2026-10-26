@@ -26,8 +26,8 @@ import subprocess
 from event import Event
 from campfires import Image, Stack, Sequence
 import time
-# from process_aia import process_aia
-# from make_carrington_stack_campfires import make_carrington_stack_campfires
+from process_aia import process_aia
+from make_carrington_stack_campfires import make_carrington_stack_campfires
 
 include_AIA = False # set to True if AIA should be included and to False if only HRIEUV is needed
 
