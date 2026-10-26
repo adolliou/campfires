@@ -160,7 +160,7 @@ class Stack:
 
         self.events = []
 
-        for i, s in enumerate(slices):
+        for i, s in enumerate(tqdm(slices)):
             blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
             if s[0].stop - s[0].start < dmin:
                 self.excluded.append(Event(self, s, blob, i))
@@ -192,24 +192,14 @@ class Stack:
         indexes                 = indexes[selection_total]
         slices_                 = tuple([slices[n] for n in range(len(slices)) if selection_total[n]])
 
+        self.events = []
+
         for ii, s in enumerate(tqdm(slices_, desc="Initialize events (fast mode)")):
             i           = indexes[ii]
             blob        = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
             ev          = Event(self, s, blob, i)
             self.events.append(ev)
 
-        self.events = []
-
-        for i, s in enumerate(slices):
-            blob = ma.masked_array(blobs.data[s], mask=regions[s] != i + 1)
-            if s[0].stop - s[0].start < dmin:
-                self.excluded.append(Event(self, s, blob, i))
-                # blobs.mask[s][~blob.mask] = True
-            elif not vmin <= (~blob.mask).sum() <= vmax:
-                self.excluded.append(Event(self, s, blob, i))
-                # blobs.mask[s][~blob.mask] = True
-            else:
-                self.events.append(Event(self, s, blob, i))
 
 
 
