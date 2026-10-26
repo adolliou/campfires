@@ -49,7 +49,7 @@ def main_antoine():
     print("starting Sequence")
     seq = Sequence(data_paths, fov = None)
     print("starting extract_events")
-    seq.extract_events(sigma = 3, dmin = 2, vmin = 2, compute_excluded=True)
+    seq.extract_events(sigma = 3, dmin = 2, vmin = 2, compute_excluded=False)
 
     t              = time.time() - t0
     print(f"elapsed time {t}")
